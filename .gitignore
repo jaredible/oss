@@ -1,0 +1,9 @@
+# Executables
+oss
+user
+
+# Object files
+*.o
+
+# Output files
+*.out
