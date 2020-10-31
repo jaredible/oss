@@ -2,7 +2,7 @@ CC		= gcc
 CFLAGS		= -Wall -g
 
 OSS_SRC		= oss.c
-OSS_OBJ		= $(OSS_SRC:.c=.o)
+OSS_OBJ		= $(OSS_SRC:.c=.o) $(QUEUE_OBJ)
 OSS		= oss
 
 USER_SRC	= user.c
@@ -11,6 +11,12 @@ USER		= user
 
 SHARED_SRC	= shared.h
 SHARED_OBJ	= shared.o
+
+HELPER_SRC	= helper.h
+HELPER_OBJ	= helper.o
+
+QUEUE_SRC	= queue.h
+QUEUE_OBJ	= queue.o
 
 OUTPUT		= $(OSS) $(USER)
 
