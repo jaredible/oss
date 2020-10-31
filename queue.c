@@ -12,23 +12,23 @@ Queue *queue_create(unsigned int capacity) {
 	return queue;
 }
 
-void queue_push(Queue *queue, int item) {
+void queue_push(Queue *queue, unsigned int item) {
 	if (queue_full(queue)) return;
 	queue->rear = (queue->rear + 1) % queue->capacity;
 	queue->array[queue->rear] = item;
 	queue->size = queue->size + 1;
 }
 
-int queue_pop(Queue *queue) {
-	if (queue_empty(queue)) return INT_MIN;
+unsigned int queue_pop(Queue *queue) {
+	if (queue_empty(queue)) return -1;
 	int item = queue->array[queue->front];
 	queue->front = (queue->front + 1) % queue->capacity;
 	queue->size = queue->size - 1;
 	return item;
 }
 
-int queue_peek(Queue *queue) {
-	if (queue_empty(queue)) return INT_MIN;
+unsigned int queue_peek(Queue *queue) {
+	if (queue_empty(queue)) return -1;
 	int item = queue->array[queue->front];
 	return item;
 }
