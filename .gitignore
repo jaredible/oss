@@ -5,5 +5,5 @@ user
 # Object files
 *.o
 
-# Output files
-*.out
+# Log files
+*.log
