@@ -10,15 +10,30 @@
 #ifndef SHARED_H
 #define SHARED_H
 
-#include <sys/stat.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 #define BUFFER_LENGTH 1024
-#define KEY_PATHNAME "."
-#define KEY_PROJID 'o'
-#define PERMS (S_IRUSR | S_IWUSR)
-#define PROCESSES_COUNT 18
-#define DEFAULT_QUANTUM_BASE 10000
+#define PROCESSES_CONCURRENT_MAX 18
+#define PROCESSES_TOTAL_MAX 100
+#define PATH_LOG "./output.log"
+
+#define QUANTUM_BASE_MIN 1e3
+#define QUANTUM_BASE_MAX 1e5
+#define QUANTUM_BASE_DEFAULT 1e4
+#define DIGEST_OUTPUT_DEFAULT false
+#define TIMEOUT_MIN 1
+#define TIMEOUT_MAX 10
+#define TIMEOUT_DEFAULT 3
+
+#define QUEUE_RUN_COUNT 4
+#define QUEUE_RUN_SIZE PROCESSES_CONCURRENT_MAX
+#define QUEUE_BLOCK_SIZE PROCESSES_TOTAL_MAX
+
+typedef struct {
+	long type;
+	char text[BUFFER_LENGTH];
+} Message;
 
 /* Time data */
 typedef struct {
@@ -39,25 +54,36 @@ typedef struct {
 
 /* OS data */
 typedef struct {
-	PCB ptable[PROCESSES_COUNT];
+	PCB ptable[PROCESSES_CONCURRENT_MAX];
 	Time system;
+	unsigned int quantum; /* Base quantum for queues */
 } OS;
 
 /* Shared-memory data */
 typedef struct {
 	OS os;
-	unsigned int quantum; /* Base quantum for queues */
+	PCB *running; /* Active process PCB */
 } Shared;
 
 void init(int, char**);
 void error(char *fmt, ...);
 void crash(char*);
+char *getProgramName();
 
-void allocateSharedMemory();
-void attachSharedMemory();
+void allocateSharedMemory(bool);
 void releaseSharedMemory();
 Shared *getSharedMemory();
 
+void allocateMessageQueues(bool);
+void releaseMessageQueues();
+void sendMessage(Message*, int, pid_t, char*, bool);
+void receiveMessage(Message*, int, pid_t, bool);
+int getParentQueue();
+int getChildQueue();
+
+void logger(char*, ...);
 void cleanup();
+
+Time *getSystemTime();
 
 #endif

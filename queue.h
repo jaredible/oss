@@ -15,5 +15,6 @@ unsigned int queue_pop(Queue*);
 unsigned int queue_peek(Queue*);
 bool queue_full(Queue*);
 bool queue_empty(Queue*);
+void queue_display(Queue*);
 
 #endif

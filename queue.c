@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "queue.h"
@@ -39,4 +40,14 @@ bool queue_full(Queue *queue) {
 
 bool queue_empty(Queue *queue) {
 	return queue->size == 0;
+}
+
+void queue_display(Queue *queue) {
+	printf("Queue size: ");
+	int i;
+	for (i = 0; i < queue->size; i++) {
+		printf("%d", queue->array[i]);
+		if (i < queue->size - 1) printf(", ");
+	}
+	printf("\n");
 }
