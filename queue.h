@@ -6,7 +6,7 @@
 typedef struct {
 	unsigned int front, rear, size;
 	unsigned int capacity;
-	int *array;
+	unsigned int *array;
 } Queue;
 
 Queue *queue_create(unsigned int);

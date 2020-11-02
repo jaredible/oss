@@ -14,8 +14,8 @@
 #include <sys/types.h>
 
 #define BUFFER_LENGTH 1024
-#define PROCESSES_CONCURRENT_MAX 18
-#define PROCESSES_TOTAL_MAX 100
+#define PROCESSES_CONCURRENT_MAX 2
+#define PROCESSES_TOTAL_MAX 4
 #define PATH_LOG "./output.log"
 
 #define QUANTUM_BASE_MIN 1e3
@@ -26,8 +26,8 @@
 #define TIMEOUT_MAX 10
 #define TIMEOUT_DEFAULT 3
 
-#define QUEUE_RUN_COUNT 4
-#define QUEUE_RUN_SIZE PROCESSES_CONCURRENT_MAX
+#define QUEUE_SET_COUNT 4
+#define QUEUE_SET_SIZE PROCESSES_CONCURRENT_MAX
 #define QUEUE_BLOCK_SIZE PROCESSES_TOTAL_MAX
 
 typedef struct {
@@ -52,17 +52,11 @@ typedef struct {
 	Time waiting; /* Time spent waiting */
 } PCB;
 
-/* OS data */
+/* Shared data between oss and users */
 typedef struct {
 	PCB ptable[PROCESSES_CONCURRENT_MAX];
 	Time system;
 	unsigned int quantum; /* Base quantum for queues */
-} OS;
-
-/* Shared-memory data */
-typedef struct {
-	OS os;
-	PCB *running; /* Active process PCB */
 } Shared;
 
 void init(int, char**);
@@ -85,5 +79,6 @@ void logger(char*, ...);
 void cleanup();
 
 Time *getSystemTime();
+void addTime(Time*, unsigned long, unsigned long);
 
 #endif

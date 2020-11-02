@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "shared.h"
 
 typedef struct {
 	Shared *shared;
-	Message *message;
 	PCB *pcb;
+	Message *message;
 } Global;
 
 void initializeProgram(int, char**);
@@ -42,18 +43,34 @@ void initializeProgram(int argc, char **argv) {
 	allocateMessageQueues(false);
 	
 	global->shared = getSharedMemory();
-	global->pcb = &global->shared->os.ptable[localPID];
+	global->pcb = &global->shared->ptable[localPID];
 }
 
 void simulateUser() {
 	global->message = (Message*) malloc(sizeof(Message));
-	int n = 10;
+	
+	srand(0);//time(NULL) ^ (getpid() << 16));
+	
+	bool usingIO = false;
+	
 	while (true) {
-		receiveMessage(global->message, getChildQueue(), getpid(), true);
-		sendMessage(global->message, getParentQueue(), getpid(), n == 0 ? "TERMINATED" : "EXPIRED", 0);
-		if (n == 0) exit(21);
-		n--;
-		//sleep(1);
+		receiveMessage(global->message, getChildQueue(), global->pcb->actualPID, true);
+		
+		bool shouldTerminate = rand() % 100 < 10;
+		bool useEntireQuantum = rand() % 2 == 1;
+		
+		if (shouldTerminate && !usingIO) {
+			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, "TERMINATED", true);
+			char buf[BUFFER_LENGTH];
+			snprintf(buf, BUFFER_LENGTH, "%d", (rand() % 99) + 1);
+			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, buf, true);
+			exit(20 + global->pcb->localPID);
+		}
+		
+		if (true | useEntireQuantum) {
+			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, "EXPIRED", true);
+		} else if (!usingIO) {
+		}
 	}
 }
 

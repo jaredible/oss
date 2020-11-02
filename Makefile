@@ -1,12 +1,12 @@
 CC		= gcc
-CFLAGS		= -Wall -g
+CFLAGS		= -Wall -g -lm
 
 OSS_SRC		= oss.c
-OSS_OBJ		= $(OSS_SRC:.c=.o) $(QUEUE_OBJ)
+OSS_OBJ		= $(OSS_SRC:.c=.o) $(HELPER_OBJ) $(QUEUE_OBJ)
 OSS		= oss
 
 USER_SRC	= user.c
-USER_OBJ	= $(USER_SRC:.c=.o)
+USER_OBJ	= $(USER_SRC:.c=.o) $(HELPER_OBJ)
 USER		= user
 
 SHARED_SRC	= shared.h
@@ -33,4 +33,4 @@ $(USER): $(USER_OBJ) $(SHARED_OBJ)
 
 .PHONY: clean
 clean:
-	/bin/rm -f $(OUTPUT) *.o *.out
+	/bin/rm -f $(OUTPUT) *.o *.log

@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "queue.h"
 
@@ -9,7 +10,7 @@ Queue *queue_create(unsigned int capacity) {
 	queue->capacity = capacity;
 	queue->front = queue->size = 0;
 	queue->rear = capacity - 1;
-	queue->array = (int*) malloc(queue->capacity * sizeof(int));
+	queue->array = (unsigned int*) malloc(queue->capacity * sizeof(unsigned int));
 	return queue;
 }
 
@@ -21,10 +22,14 @@ void queue_push(Queue *queue, unsigned int item) {
 }
 
 unsigned int queue_pop(Queue *queue) {
+//	printf("[queue_pop] front: %d, rear: %d, ", queue->front, queue->rear);
 	if (queue_empty(queue)) return -1;
 	int item = queue->array[queue->front];
+	memset(&queue->array[queue->front], 0, sizeof(unsigned int));
+//	printf("item: %d, ", item);
 	queue->front = (queue->front + 1) % queue->capacity;
 	queue->size = queue->size - 1;
+//	printf("front: %d\n", queue->front);
 	return item;
 }
 
@@ -43,11 +48,13 @@ bool queue_empty(Queue *queue) {
 }
 
 void queue_display(Queue *queue) {
-	printf("Queue size: ");
+	// TODO: fix
+	printf("Queue(%d): ", queue->size);
 	int i;
 	for (i = 0; i < queue->size; i++) {
-		printf("%d", queue->array[i]);
-		if (i < queue->size - 1) printf(", ");
+		int j = (queue->front + i) % queue->capacity;
+		printf("%d ", queue->array[j]);
+//		if (j != (queue->front + queue->size) % queue->capacity) printf(", ");
 	}
 	printf("\n");
 }

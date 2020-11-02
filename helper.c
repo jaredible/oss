@@ -1,7 +1,7 @@
+#include <math.h>
 #include <stdio.h>
 
 #include "helper.h"
-#include "shared.h"
 
 int getLineCount(char *path) {
 	FILE *fp = fopen(path, "r");
@@ -15,4 +15,27 @@ int getLineCount(char *path) {
 	fclose(fp);
 	
 	return count;
+}
+
+int getQueueQuantum(int baseQuantum, int queue) {
+	if (queue > 0 && queue < ((QUEUE_SET_COUNT - 1) - 1)) {
+		return pow(queue + 1, 2) * getUserQuantum(baseQuantum, queue);
+	} else {
+		return -1;
+	}
+}
+
+int getUserQuantum(int baseQuantum, int queue) {
+	return baseQuantum / pow(queue + 1, 2);
+}
+
+void here(int n) {
+	if (DEBUG) printf("%s: HERE %d\n", getProgramName(), n);
+}
+
+void printBits(unsigned long int bits, int size) {
+	unsigned int i;
+	for (i = 1 << (size - 1); i > 0; i /= 2)
+		(bits & i) ? printf("1") : printf("0");
+	printf("\n");
 }

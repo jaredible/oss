@@ -23,6 +23,8 @@ static int pmsqid;
 static key_t cmsqkey;
 static int cmsqid;
 
+Time systemTime;
+
 void init(int argc, char **argv) {
 	programName = argv[0];
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -113,8 +115,8 @@ void logger(char *fmt, ...) {
 	vsnprintf(buf, BUFFER_LENGTH, fmt, args);
 	va_end(args);
 	
-	fprintf(fp, buf);
-	printf("%s: [%lu:%lu] %s\n", basename(programName), getSystemTime()->sec, getSystemTime()->ns, buf);
+	fprintf(fp, buf); // TODO: fix
+	printf("%s: [%lu:%lu] %s\n", basename(programName), systemTime.sec, systemTime.ns, buf);
 	
 	fclose(fp);
 }
@@ -125,5 +127,19 @@ void cleanup() {
 }
 
 Time *getSystemTime() {
-	return &shmptr->os.system;
+	return &system;
+}
+
+void addTime(Time *time, unsigned long sec, unsigned long ns) {
+//	printf("sec: %lu, ns: %lu\n", sec, ns);
+	systemTime.sec += sec;
+	systemTime.ns += ns;
+//	unsigned long newns = time->ns + ns;
+//	printf("newns: %d\n", newns);
+//	while (newns >= 1e9) {
+//		newns -= 1e9;
+//		time->sec++;
+//	}
+//	time->ns = newns;
+//	printf("sec: %lu, ns: %lu\n", systemTime.sec, systemTime.ns);
 }
