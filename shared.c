@@ -134,12 +134,22 @@ void addTime(Time *time, unsigned long sec, unsigned long ns) {
 //	printf("sec: %lu, ns: %lu\n", sec, ns);
 	systemTime.sec += sec;
 	systemTime.ns += ns;
-//	unsigned long newns = time->ns + ns;
+	unsigned long newns = systemTime.ns + ns;
 //	printf("newns: %d\n", newns);
-//	while (newns >= 1e9) {
-//		newns -= 1e9;
-//		time->sec++;
-//	}
-//	time->ns = newns;
+	while (newns >= 1e9) {
+		newns -= 1e9;
+		systemTime.sec++;
+	}
+	systemTime.ns = newns;
 //	printf("sec: %lu, ns: %lu\n", systemTime.sec, systemTime.ns);
+}
+
+void addTime2(Time *time, unsigned long sec, unsigned long ns) {
+	time->sec += sec;
+	unsigned long newns = time->ns + ns;
+	while (newns >= 1e9) {
+		newns -= 1e9;
+		time->sec++;
+	}
+	time->ns = newns;
 }

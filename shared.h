@@ -14,8 +14,8 @@
 #include <sys/types.h>
 
 #define BUFFER_LENGTH 1024
-#define PROCESSES_CONCURRENT_MAX 2
-#define PROCESSES_TOTAL_MAX 4
+#define PROCESSES_CONCURRENT_MAX 4
+#define PROCESSES_TOTAL_MAX 8
 #define PATH_LOG "./output.log"
 
 #define QUANTUM_BASE_MIN 1e3
@@ -43,20 +43,21 @@ typedef struct {
 
 /* Process Control Block (PCB) data */
 typedef struct {
-	unsigned int priority; /* Queue index */
-	unsigned int localPID; /* Simulated PID */
 	pid_t actualPID; /* Actual PID */
-	Time cpu; /* Time spent on the CPU */
-	Time system; /* Time spent in the system */
+	unsigned int localPID; /* Simulated PID */
+	unsigned int priority; /* Queue index */
+	Time cpu; /* Time spent on CPU */
+	Time queue; /* Time spent in queue */
 	Time blocked; /* Time spent blocked */
 	Time waiting; /* Time spent waiting */
+	Time system; /* Time spent in system */
 } PCB;
 
 /* Shared data between oss and users */
 typedef struct {
 	PCB ptable[PROCESSES_CONCURRENT_MAX];
 	Time system;
-	unsigned int quantum; /* Base quantum for queues */
+	unsigned int quantum; /* Base quantum for queues */ // TODO: rename?
 } Shared;
 
 void init(int, char**);
@@ -80,5 +81,6 @@ void cleanup();
 
 Time *getSystemTime();
 void addTime(Time*, unsigned long, unsigned long);
+void addTime2(Time*, unsigned long, unsigned long);
 
 #endif

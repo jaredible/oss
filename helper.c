@@ -18,15 +18,15 @@ int getLineCount(char *path) {
 }
 
 int getQueueQuantum(int baseQuantum, int queue) {
-	if (queue > 0 && queue < ((QUEUE_SET_COUNT - 1) - 1)) {
-		return pow(queue + 1, 2) * getUserQuantum(baseQuantum, queue);
+	if (queue > 0 && queue < (QUEUE_SET_COUNT - 1)) {
+		return baseQuantum * pow(2, queue);
 	} else {
 		return -1;
 	}
 }
 
 int getUserQuantum(int baseQuantum, int queue) {
-	return baseQuantum / pow(queue + 1, 2);
+	return baseQuantum / pow(2, queue);
 }
 
 void here(int n) {
