@@ -14,8 +14,8 @@
 #include <sys/types.h>
 
 #define BUFFER_LENGTH 1024
-#define PROCESSES_CONCURRENT_MAX 4
-#define PROCESSES_TOTAL_MAX 8
+#define PROCESSES_CONCURRENT_MAX 2
+#define PROCESSES_TOTAL_MAX 4
 #define PATH_LOG "./output.log"
 
 #define QUANTUM_BASE_MIN 1e3
@@ -30,6 +30,8 @@
 #define QUEUE_SET_SIZE PROCESSES_CONCURRENT_MAX
 #define QUEUE_BLOCK_SIZE PROCESSES_TOTAL_MAX
 
+#define EXIT_STATUS_OFFSET 20
+
 typedef struct {
 	long type;
 	char text[BUFFER_LENGTH];
@@ -37,8 +39,8 @@ typedef struct {
 
 /* Time data */
 typedef struct {
-	unsigned long sec; /* seconds */
-	unsigned long ns; /* nanoseconds */
+	unsigned int sec; /* seconds */ // TODO: rename to "s"
+	unsigned int ns; /* nanoseconds */
 } Time;
 
 /* Process Control Block (PCB) data */
@@ -46,17 +48,19 @@ typedef struct {
 	pid_t actualPID; /* Actual PID */
 	unsigned int localPID; /* Simulated PID */
 	unsigned int priority; /* Queue index */
+	Time arrival; /* Time created */
+	Time exit; /* Time exited */
 	Time cpu; /* Time spent on CPU */
 	Time queue; /* Time spent in queue */
-	Time blocked; /* Time spent blocked */
-	Time waiting; /* Time spent waiting */
+	Time block; /* Time spent blocked */
+	Time wait; /* Time spent waiting */
 	Time system; /* Time spent in system */
 } PCB;
 
 /* Shared data between oss and users */
 typedef struct {
-	PCB ptable[PROCESSES_CONCURRENT_MAX];
 	Time system;
+	PCB ptable[PROCESSES_CONCURRENT_MAX];
 	unsigned int quantum; /* Base quantum for queues */ // TODO: rename?
 } Shared;
 
@@ -79,8 +83,10 @@ int getChildQueue();
 void logger(char*, ...);
 void cleanup();
 
-Time *getSystemTime();
-void addTime(Time*, unsigned long, unsigned long);
-void addTime2(Time*, unsigned long, unsigned long);
+void clearTime(Time*);
+void copyTime(Time*, Time*);
+void addTime(Time*, int, int);
+Time subtractTime(Time*, Time*);
+void showTime(Time*);
 
 #endif

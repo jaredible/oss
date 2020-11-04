@@ -9,13 +9,13 @@ USER_SRC	= user.c
 USER_OBJ	= $(USER_SRC:.c=.o) $(HELPER_OBJ)
 USER		= user
 
-SHARED_SRC	= shared.h
+SHARED_HEAD	= shared.h
 SHARED_OBJ	= shared.o
 
-HELPER_SRC	= helper.h
+HELPER_HEAD	= helper.h
 HELPER_OBJ	= helper.o
 
-QUEUE_SRC	= queue.h
+QUEUE_HEAD	= queue.h
 QUEUE_OBJ	= queue.o
 
 OUTPUT		= $(OSS) $(USER)
@@ -28,7 +28,7 @@ $(OSS): $(OSS_OBJ) $(SHARED_OBJ)
 $(USER): $(USER_OBJ) $(SHARED_OBJ)
 	$(CC) $(CFLAGS) $(USER_OBJ) $(SHARED_OBJ) -o $(USER)
 
-%.o: %.c $(SHARED_SRC)
+%.o: %.c $(SHARED_HEAD)
 	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 .PHONY: clean

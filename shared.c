@@ -23,8 +23,6 @@ static int pmsqid;
 static key_t cmsqkey;
 static int cmsqid;
 
-Time systemTime;
-
 void init(int argc, char **argv) {
 	programName = argv[0];
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -116,7 +114,7 @@ void logger(char *fmt, ...) {
 	va_end(args);
 	
 	fprintf(fp, buf); // TODO: fix
-	printf("%s: [%lu:%lu] %s\n", basename(programName), systemTime.sec, systemTime.ns, buf);
+	printf("%s: [%010d:%010d] %s\n", basename(programName), shmptr->system.sec, shmptr->system.ns, buf);
 	
 	fclose(fp);
 }
@@ -126,30 +124,33 @@ void cleanup() {
 	releaseMessageQueues();
 }
 
-Time *getSystemTime() {
-	return &system;
+void clearTime(Time *time) {
+	time->sec = 0;
+	time->ns = 0;
 }
 
-void addTime(Time *time, unsigned long sec, unsigned long ns) {
-//	printf("sec: %lu, ns: %lu\n", sec, ns);
-	systemTime.sec += sec;
-	systemTime.ns += ns;
-	unsigned long newns = systemTime.ns + ns;
-//	printf("newns: %d\n", newns);
-	while (newns >= 1e9) {
-		newns -= 1e9;
-		systemTime.sec++;
-	}
-	systemTime.ns = newns;
-//	printf("sec: %lu, ns: %lu\n", systemTime.sec, systemTime.ns);
+void copyTime(Time *source, Time *target) {
+	memcpy(target, source, sizeof(Time));
 }
 
-void addTime2(Time *time, unsigned long sec, unsigned long ns) {
+void addTime(Time *time, int sec, int ns) {
 	time->sec += sec;
-	unsigned long newns = time->ns + ns;
-	while (newns >= 1e9) {
-		newns -= 1e9;
+	time->ns += ns;
+	while (time->ns >= 1e9) {
+		time->ns -= 1e9;
 		time->sec++;
 	}
-	time->ns = newns;
+}
+
+Time subtractTime(Time *minuend, Time *subtrahend) {
+	Time difference = { .sec = minuend->sec - subtrahend->sec, .ns = minuend->ns - subtrahend->ns };
+	if (difference.ns < 0) {
+		difference.ns += 1e9;
+		difference.sec--;
+	}
+	return difference;
+}
+
+void showTime(Time *time) {
+	printf("%d:%d\n", time->sec, time->ns);
 }

@@ -49,35 +49,29 @@ void initializeProgram(int argc, char **argv) {
 void simulateUser() {
 	global->message = (Message*) malloc(sizeof(Message));
 	
-	srand(time(NULL) ^ (getpid() << 16));
-	
-	bool usingIO = false;
+	srand(global->pcb->localPID);//time(NULL) ^ (getpid() << 16));
 	
 	while (true) {
 		receiveMessage(global->message, getChildQueue(), global->pcb->actualPID, true);
 		
-		bool shouldTerminate = rand() % 100 < 10;
+		bool shouldTerminate = rand() % 100 < 50;
 		bool useEntireQuantum = rand() % 2 == 1;
 		
-		if (shouldTerminate && !usingIO) {
+		if (shouldTerminate) {
 			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, "TERMINATED", true);
 			int rp = (rand() % 99) + 1;
 			char buf[BUFFER_LENGTH];
 			snprintf(buf, BUFFER_LENGTH, "%d", rp);
 			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, buf, true);
-			exit(20 + global->pcb->localPID);
+			exit(EXIT_STATUS_OFFSET + global->pcb->localPID);
 		}
 		
 		if (useEntireQuantum) {
 			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, "EXPIRED", true);
-		} else if (!usingIO) {
-			usingIO = true;
+		} else {
 			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, "BLOCKED", false);
 			sleep(1);
-			//printf("HERE1\n");
 			sendMessage(global->message, getParentQueue(), global->pcb->actualPID, "UNBLOCKED", false);
-			usingIO = false;
-			//printf("HERE2\n");
 		}
 	}
 }

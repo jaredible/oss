@@ -1,4 +1,5 @@
 #include <getopt.h>
+#include <limits.h> // TODO: remove
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,6 +13,7 @@
 #include <unistd.h>
 
 #include "helper.h"
+#include "oss.h"
 #include "queue.h"
 #include "shared.h"
 
@@ -37,9 +39,14 @@ typedef struct {
 	Message *message;
 	PCB *running;
 	bv_t vector;
+	Time idle;
 	Time nextSpawnAttempt;
 	unsigned int spawnedProcessCount;
 	unsigned int exitedProcessCount;
+	Time totalCpu;
+	Time totalBlock;
+	Time totalWait;
+	Time totalSystem;
 } Global;
 
 void initializeProgram(int, char**);
@@ -70,6 +77,9 @@ int findAvailableLocalPID();
 PCB *getPCB(unsigned int);
 bool isProcessRunning();
 bool isProcessRealtime(PCB*);
+
+/* Unknown? */
+bool canSchedule();
 
 void initializeQueues();
 void swapRunSets();
@@ -179,51 +189,48 @@ void initializeProgram(int argc, char **argv) {
 	global->shared->quantum = quantum;
 }
 
+// TODO: remove
+void test() {
+	Time arrival = { 10, 400 };//{ 11, 815348300 };
+	Time exit = { 20, 200 };//{ 30, 491589300 };
+	Time cpu = { 0, 100 };//{ 0, 2050 };
+	Time wait = { 0, 0 };
+	
+	wait.sec = exit.sec - (arrival.sec + cpu.sec);
+	long epoch = arrival.ns + cpu.ns;
+	printf("arrival.ns + cpu.ns = %ld\n", epoch);
+	if (exit.ns < epoch) { // 200 < 500
+		printf("HERE\n");
+		wait.sec--;
+		wait.ns += 1e9;
+		wait.ns += (exit.ns - epoch);
+	} else {
+		wait.ns = epoch;
+	}
+	
+	printf("Arrival time: %d:%d\n", arrival.sec, arrival.ns);
+	printf("Exit time: %d:%d\n", exit.sec, exit.ns);
+	printf("CPU time: %d:%d\n", cpu.sec, cpu.ns);
+	printf("Wait time: %d:%d\n", wait.sec, wait.ns);
+}
+
 void simulateOS() {
 	global->message = (Message*) malloc(sizeof(Message));
 	
 	initializeQueues();
 	
-	//global->shared->system.sec = 0;
-	//global->shared->system.ns = 0;
-	//global->nextSpawnAttempt.sec = 0;
-	//global->nextSpawnAttempt.ns = 0;
+	global->shared->system.sec = 0;
+	global->shared->system.ns = 0;
+	global->nextSpawnAttempt.sec = 0;
+	global->nextSpawnAttempt.ns = 0;
 	
 	srand(0);//time(NULL));
 	
-//	Queue *queue = queue_create(3);
-//	queue_push(queue, 69);
-//	queue_push(queue, 420);
-//	queue_push(queue, 666);
-//	queue_display(queue);
-//	printf("Queue pop: %d\n", queue_pop(queue));
-//	queue_display(queue);
-//	queue_push(queue, 999);
-//	printf("Queue pop: %d\n", queue_pop(queue));
-//	queue_display(queue);
-//	queue_push(queue, 1000);
-//	printf("Queue pop: %d\n", queue_pop(queue));
-//	queue_display(queue);
-//	return;
-//	printf("%d\n", getUserQuantum(10000, 0));
-//	printf("%d\n", getUserQuantum(10000, 1));
-//	printf("%d\n", getUserQuantum(10000, 2));
-//	printf("%d\n", getUserQuantum(10000, 3));
-//	printf("\n");
-//	printf("%d\n", getQueueQuantum(10000, 0));
-//	printf("%d\n", getQueueQuantum(10000, 1));
-//	printf("%d\n", getQueueQuantum(10000, 2));
-//	printf("%d\n", getQueueQuantum(10000, 3));
+//	test();
 //	return;
 	
-//	while (true) {
-//		addTime2(&global->shared->system, 1, 1e4);
-//		printf("[%lu:%lu]\n", global->shared->system.sec, global->shared->system.ns);
-//		if (global->shared->system.sec >= 0 && global->shared->system.ns >= 1e6) break;
-//	}
-//	return;
-	
-	while (true) {
+	while (canSchedule()) {
+		addTime(&global->shared->system, 0, 1e4);
 		addTime(&global->shared->system, 0, 1e4);
 		
 		handleProcessScheduling();
@@ -232,28 +239,27 @@ void simulateOS() {
 		pid_t pid = waitpid(-1, &status, WNOHANG);
 		if (pid > 0) {
 			if (WIFEXITED(status)) {
-				if (WEXITSTATUS(status) > 20) {
-					int localPID = WEXITSTATUS(status) - 20;
+				if (WEXITSTATUS(status) > EXIT_STATUS_OFFSET) {
+					int localPID = WEXITSTATUS(status) - EXIT_STATUS_OFFSET;
 					PCB *pcb = getPCB(localPID);
 					onProcessExited(pcb);
 				}
 			}
 		}
-		
-		if (global->exitedProcessCount == PROCESSES_TOTAL_MAX) break;
 	}
+	
+	copyTime(&global->shared->system, &global->totalSystem);
+	printf("%i:%i\n", global->totalSystem.sec, global->totalSystem.ns);
 }
 
 bool canSpawnProcess() {
-	Time *system = getSystemTime();
+	Time *system = &global->shared->system;
 	Time *next = &global->nextSpawnAttempt;
 	return global->spawnedProcessCount < PROCESSES_TOTAL_MAX && system->sec >= next->sec && system->ns >= next->ns && global->spawnedProcessCount < PROCESSES_TOTAL_MAX;
 }
 
 void trySpawnProcess() {
-	if (canSpawnProcess()) {
-		spawnProcess();
-	}
+	if (canSpawnProcess()) spawnProcess();
 }
 
 void spawnProcess() {
@@ -273,22 +279,24 @@ void spawnProcess() {
 		PCB *pcb = getPCB(localPID);
 		initializePCB(pcb, localPID, pid);
 		onProcessCreated(pcb);
-		
-		queue_push(getActiveSet()[pcb->priority], localPID);
-		logger("[CREATED] Priority: %d, PID: %d", pcb->priority, localPID);
-		
-		global->nextSpawnAttempt.sec = getSystemTime()->sec;
-		global->nextSpawnAttempt.ns = getSystemTime()->ns;
-		int addsec = abs(rand() * rand()) % (MAX_TIME_BETWEEN_NEW_PROCS_SEC + 1);
-		int addns = abs(rand() * rand()) % (MAX_TIME_BETWEEN_NEW_PROCS_NS + 1);
-		addTime(&global->nextSpawnAttempt, addsec, addns);
 	}
 }
 
 void initializePCB(PCB *pcb, unsigned int localPID, pid_t actualPID) {
-	pcb->priority = rand() % 2;
 	pcb->localPID = localPID;
 	pcb->actualPID = actualPID;
+	pcb->priority = rand() % 100 < 20 ? 0 : 1;
+	
+	clearTime(&pcb->arrival);
+	clearTime(&pcb->exit);
+	clearTime(&pcb->cpu);
+	clearTime(&pcb->queue);
+	clearTime(&pcb->block);
+	clearTime(&pcb->wait);
+	clearTime(&pcb->system);
+	
+	copyTime(&global->shared->system, &pcb->arrival);
+	copyTime(&global->shared->system, &pcb->system);
 }
 
 void releasePCB(PCB *pcb) {
@@ -320,16 +328,11 @@ void handleRunningProcess() {
 void handleBlockedProcesses() {
 	Queue *blocked = getBlockedQueue();
 	if (!queue_empty(blocked)) {
-//		queue_display(getBlockedQueue());
 		int i;
 		for (i = 0; i < blocked->size; i++) {
 			PCB *pcb = getPCB(queue_pop(blocked));
-//			if (msgrcv(getParentQueue(), global->message, sizeof(Message), pcb->actualPID, IPC_NOWAIT) > -1) {
-//				printf("HERE %d %s\n", pcb->localPID, global->message->text);
-//				if (strcmp(global->message, "UNBLOCKED") == 0) printf("HEREHERE\n");
-//			}
 			if (msgrcv(getParentQueue(), global->message, sizeof(Message), pcb->actualPID, IPC_NOWAIT) > -1 && strcmp(global->message->text, "UNBLOCKED") == 0) {
-				queue_push(getActiveSet()[pcb->priority], pcb->localPID);
+				onProcessUnblocked(pcb);
 			} else {
 				queue_push(getBlockedQueue(), pcb->localPID);
 			}
@@ -368,28 +371,12 @@ void trySwapQueueSets() {
 	}
 	if (!flag) return;
 	
-//	printf("\nSwapping queues\n");
-//	printf("Before swap\n");
-//	for (i = 0; i < QUEUE_SET_COUNT; i++) {
-//		printf("Active[%d] ", i); queue_display(getActiveSet()[i]);
-//		printf("Expired[%d] ", i); queue_display(getExpiredSet()[i]);
-//	}
-	
-	/* If there's no process running, no processes in the active queues, and a process in the expired queues, swap active and expired runqueues */
 	swapRunSets();
-	
-//	printf("After swap\n");
-//	for (i = 0; i < QUEUE_SET_COUNT; i++) {
-//		printf("Active[%d] ", i); queue_display(getActiveSet()[i]);
-//		printf("Expired[%d] ", i); queue_display(getExpiredSet()[i]);
-//	}
-//	printf("\n");
 }
 
 void scheduleProcess(PCB *pcb) {
 	global->running = pcb;
 	sendMessage(global->message, getChildQueue(), pcb->actualPID, "", false);
-//	logger("[DISPATCHED] Priority: %d, PID: %d", pcb->priority, pcb->localPID);
 	onProcessScheduled(pcb);
 }
 
@@ -409,15 +396,58 @@ void handleSignal(int signal) {
 
 void onProcessCreated(PCB *pcb) {
 	global->spawnedProcessCount++;
+	
+	queue_push(getActiveSet()[pcb->priority], pcb->localPID);
+	
+	global->nextSpawnAttempt.sec = global->shared->system.sec;
+	global->nextSpawnAttempt.ns = global->shared->system.ns;
+	int addsec = abs(rand() * rand()) % (MAX_TIME_BETWEEN_NEW_PROCS_SEC + 1);
+	int addns = abs(rand() * rand()) % (MAX_TIME_BETWEEN_NEW_PROCS_NS + 1);
+	addTime(&global->nextSpawnAttempt, addsec, addns);
+	
+	logger("%-6s Priority: %d, PID: %d", "*-----", pcb->priority, pcb->localPID);
 }
 
 void onProcessScheduled(PCB *pcb) {
+	logger("%-6s Priority: %d, PID: %d", "-*----", pcb->priority, pcb->localPID);
 }
 
 void onProcessTerminated(PCB *pcb) {
 	receiveMessage(global->message, getParentQueue(), pcb->actualPID, true);
-	logger("[TERMINATED] PID: %d", pcb->localPID);
+	
+	copyTime(&global->shared->system, &pcb->exit);
+	
+	int percent = atoi(global->message->text);
+	
+	int cost = -1;
+	switch (pcb->priority) {
+		case 0: cost = 10000; break;
+		case 1: cost = 5000; break;
+		case 2: cost = 2500; break;
+		case 3: cost = 1250; break;
+	}
+	
+	int time = (int) ((double) cost * ((double) percent / (double) 100));
+	
+	printf("percent: %d, cost: %d, time: %d\n", percent, cost, time);
+	
+	addTime(&pcb->cpu, 0, time);
+	addTime(&global->shared->system, 0, time);
+	
+	/* Calculate process' total time waiting */
+	pcb->wait.sec = pcb->exit.sec - (pcb->arrival.sec + pcb->cpu.sec);
+	long epoch = pcb->arrival.ns + pcb->cpu.ns;
+	if (pcb->exit.ns < epoch) {
+		pcb->wait.sec--;
+		pcb->wait.ns += 1e9;
+		pcb->wait.ns += (pcb->exit.ns - epoch);
+	} else {
+		pcb->wait.ns = epoch;
+	}
+	
 	global->running = NULL;
+	
+	logger("%-6s Priority: %d, PID: %d", "-----*", pcb->priority, pcb->localPID);
 }
 
 void onProcessExpired(PCB *pcb) {
@@ -425,38 +455,45 @@ void onProcessExpired(PCB *pcb) {
 	int nextPriority = pcb->priority;
 	
 	int time = 500;
-	addTime2(&getPCB(pcb->localPID)->cpu, 0, time);
-	addTime2(&getPCB(pcb->localPID)->queue, 0, time);
-//	addTime2(&global->shared->system, 0, time);
+	addTime(&pcb->cpu, 0, time);
+	addTime(&pcb->queue, 0, time);
+	addTime(&global->shared->system, 0, time);
 	
 	if (pcb->priority == 0) {
 		queue_push(getActiveSet()[nextPriority], pcb->localPID);
+		
+		logger("%-6s Priority: %d, PID: %d", "--*---", pcb->priority, pcb->localPID);
 	} else {
 		if (pcb->priority < QUEUE_SET_COUNT - 1 && pcb->queue.sec >= 0 && pcb->queue.ns >= 1000) {
 			nextPriority++;
 			if (nextPriority > QUEUE_SET_COUNT - 1) nextPriority = QUEUE_SET_COUNT - 1;
 			pcb->priority = nextPriority;
+			clearTime(&pcb->queue);
+			logger("%-6s Priority: %d, PID: %d, Shifting: %d -> %d", "--*---", pcb->priority, pcb->localPID, previousPriority, nextPriority);
 		}
 		
 		queue_push(getExpiredSet()[nextPriority], pcb->localPID);
 	}
 	
 	global->running = NULL;
-	
-//	logger("[EXPIRED] PID: %d [%d->%d]", pcb->localPID, previousPriority, nextPriority);
 }
 
 void onProcessBlocked(PCB *pcb) {
-	logger("[BLOCKED] PID: %d", pcb->localPID);
+	logger("%-6s Priority: %d, PID: %d", "---*--", pcb->priority, pcb->localPID);
 	queue_push(getBlockedQueue(), pcb->localPID);
 	global->running = NULL;
 }
 
 void onProcessUnblocked(PCB *pcb) {
+	queue_push(getActiveSet()[pcb->priority], pcb->localPID);
+	logger("%-6s Priority: %d, PID: %d", "----*-", pcb->priority, pcb->localPID);
 }
 
 void onProcessExited(PCB *pcb) {
 	global->exitedProcessCount++;
+	
+	addTime(&global->totalWait, pcb->wait.sec, pcb->wait.ns);
+	
 	releasePCB(pcb);
 }
 
@@ -481,6 +518,10 @@ bool isProcessRunning() {
 
 bool isProcessRealtime(PCB *pcb) {
 	return pcb->priority == 0;
+}
+
+bool canSchedule() {
+	return !(global->spawnedProcessCount == PROCESSES_TOTAL_MAX && global->exitedProcessCount == PROCESSES_TOTAL_MAX);
 }
 
 void initializeQueues() {
