@@ -18,19 +18,20 @@
 #define PROCESSES_TOTAL_MAX 4
 #define PATH_LOG "./output.log"
 
-#define QUANTUM_BASE_MIN 1e3
-#define QUANTUM_BASE_MAX 1e5
-#define QUANTUM_BASE_DEFAULT 1e4
-#define DIGEST_OUTPUT_DEFAULT false
-#define TIMEOUT_MIN 1
-#define TIMEOUT_MAX 10
-#define TIMEOUT_DEFAULT 3
+//#define QUANTUM_BASE_MIN 1e3
+//#define QUANTUM_BASE_MAX 1e5
+//#define QUANTUM_BASE_DEFAULT 1e4
+//#define TIMEOUT_MIN 1
+//#define TIMEOUT_MAX 10
+//#define TIMEOUT_DEFAULT 3
 
 #define QUEUE_SET_COUNT 4
 #define QUEUE_SET_SIZE PROCESSES_CONCURRENT_MAX
-#define QUEUE_BLOCK_SIZE PROCESSES_TOTAL_MAX
+#define QUEUE_BLOCK_SIZE PROCESSES_CONCURRENT_MAX
 
 #define EXIT_STATUS_OFFSET 20
+
+enum EventType { TERMINATED, EXPIRED, BLOCKED, UNBLOCKED };
 
 typedef struct {
 	long type;
@@ -50,6 +51,7 @@ typedef struct {
 	unsigned int priority; /* Queue index */
 	Time arrival; /* Time created */
 	Time exit; /* Time exited */
+	Time burst; /* Time of last burst */
 	Time cpu; /* Time spent on CPU */
 	Time queue; /* Time spent in queue */
 	Time block; /* Time spent blocked */
@@ -88,5 +90,7 @@ void copyTime(Time*, Time*);
 void addTime(Time*, int, int);
 Time subtractTime(Time*, Time*);
 void showTime(Time*);
+
+void sigact(int, void(int));
 
 #endif

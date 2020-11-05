@@ -23,13 +23,6 @@
 typedef unsigned long int bv_t;
 
 typedef struct {
-	unsigned int quantum;
-	bool outputDigest;
-	unsigned int timeout;
-} Options;
-
-typedef struct {
-	Options options;
 	Shared *shared;
 	Queue *qset1[QUEUE_SET_COUNT];
 	Queue *qset2[QUEUE_SET_COUNT];
@@ -51,6 +44,7 @@ typedef struct {
 
 void initializeProgram(int, char**);
 void simulateOS();
+bool canSchedule();
 bool canSpawnProcess();
 void trySpawnProcess();
 void spawnProcess();
@@ -78,9 +72,6 @@ PCB *getPCB(unsigned int);
 bool isProcessRunning();
 bool isProcessRealtime(PCB*);
 
-/* Unknown? */
-bool canSchedule();
-
 void initializeQueues();
 void swapRunSets();
 Queue **getActiveSet();
@@ -102,50 +93,26 @@ int main(int argc, char **argv) {
 void initializeProgram(int argc, char **argv) {
 	init(argc, argv);
 	
+	/* Register signal handlers */
 	signal(SIGINT, handleSignal);
-	
-	void usage(int status) {
-		if (status != EXIT_SUCCESS) fprintf(stderr, "Try '%s -h' for more information\n", getProgramName());
-		else {
-			printf("NAME\n");
-			printf("       %s - operating system simulator\n", getProgramName());
-			printf("USAGE\n");
-			printf("       %s -h\n", getProgramName());
-			printf("       %s [-q x] [-d]\n", getProgramName());
-			printf("DESCRIPTION\n");
-			printf("       -h       : Prints usage information and exits\n");
-			printf("       -q x     : Base quantum for queues (default %d)\n", (int) QUANTUM_BASE_DEFAULT);
-			printf("       -d       : Outputs file with digest of process scheduling\n");
-			printf("       -t time  : Time, in seconds, after which the program will terminate (default %d)\n", (int) TIMEOUT_DEFAULT);
-		}
-		exit(status);
-	}
+	signal(SIGALRM, handleSignal);
+//	sigact(SIGINT, handleSignal);
+//	sigact(SIGALRM, handleSignal);
 	
 	bool ok = true;
-	int quantum = QUANTUM_BASE_DEFAULT;
-	bool outputDigest = DIGEST_OUTPUT_DEFAULT;
-	int timeout = TIMEOUT_DEFAULT;
+	int timeout = OPTIONS_TIMEOUT_DEFAULT;
 	
 	while (true) {
-		int c = getopt(argc, argv, "hq:t:d");
+		int c = getopt(argc, argv, "hq:t:dv");
 		if (c == -1) break;
 		switch (c) {
 			case 'h':
 				usage(EXIT_SUCCESS);
-			case 'q':
-				if (!isdigit(*optarg) || (quantum = atoi(optarg)) <= QUANTUM_BASE_MIN) {
-					error("invalid base quantum '%s'", optarg);
-					ok = false;
-				}
-				break;
 			case 't':
 				if (!isdigit(*optarg) || (timeout = atoi(optarg)) <= TIMEOUT_MIN) {
 					error("invalid timeout '%s'", optarg);
 					ok = false;
 				}
-				break;
-			case 'd':
-				outputDigest = true;
 				break;
 			default:
 				ok = false;
@@ -165,53 +132,13 @@ void initializeProgram(int argc, char **argv) {
 	
 	if (!ok) usage(EXIT_FAILURE);
 	
-	global->options.quantum = quantum;
-	global->options.outputDigest = outputDigest;
-	global->options.timeout = timeout;
-	
-	void timer(unsigned int seconds) {
-		signal(SIGALRM, handleSignal);
-		
-		struct itimerval val;
-		val.it_value.tv_sec = seconds;
-		val.it_value.tv_usec = 0;
-		val.it_interval.tv_sec = 0;
-		val.it_interval.tv_usec = 0;
-		if (setitimer(ITIMER_REAL, &val, NULL) == -1) crash("setitimer");
-	}
-	
 //	timer(timeout);
 	
 	allocateSharedMemory(true);
 	allocateMessageQueues(true);
 	
 	global->shared = getSharedMemory();
-	global->shared->quantum = quantum;
-}
-
-// TODO: remove
-void test() {
-	Time arrival = { 10, 400 };//{ 11, 815348300 };
-	Time exit = { 20, 200 };//{ 30, 491589300 };
-	Time cpu = { 0, 100 };//{ 0, 2050 };
-	Time wait = { 0, 0 };
-	
-	wait.sec = exit.sec - (arrival.sec + cpu.sec);
-	long epoch = arrival.ns + cpu.ns;
-	printf("arrival.ns + cpu.ns = %ld\n", epoch);
-	if (exit.ns < epoch) { // 200 < 500
-		printf("HERE\n");
-		wait.sec--;
-		wait.ns += 1e9;
-		wait.ns += (exit.ns - epoch);
-	} else {
-		wait.ns = epoch;
-	}
-	
-	printf("Arrival time: %d:%d\n", arrival.sec, arrival.ns);
-	printf("Exit time: %d:%d\n", exit.sec, exit.ns);
-	printf("CPU time: %d:%d\n", cpu.sec, cpu.ns);
-	printf("Wait time: %d:%d\n", wait.sec, wait.ns);
+	global->shared->quantum = QUANTUM_BASE_DEFAULT;
 }
 
 void simulateOS() {
@@ -225,9 +152,6 @@ void simulateOS() {
 	global->nextSpawnAttempt.ns = 0;
 	
 	srand(0);//time(NULL));
-	
-//	test();
-//	return;
 	
 	while (canSchedule()) {
 		addTime(&global->shared->system, 0, 1e4);
@@ -248,8 +172,19 @@ void simulateOS() {
 		}
 	}
 	
-	copyTime(&global->shared->system, &global->totalSystem);
-	printf("%i:%i\n", global->totalSystem.sec, global->totalSystem.ns);
+//	copyTime(&global->shared->system, &global->totalSystem);
+//	printf("%i:%i\n", global->totalSystem.sec, global->totalSystem.ns);
+	
+	printf("TOTAL TIMES\n");
+	printf("CPU: %d:%d\n", global->totalCpu.sec, global->totalCpu.ns);
+	printf("Block: %d:%d\n", global->totalBlock.sec, global->totalBlock.ns);
+	printf("Wait: %d:%d\n", global->totalWait.sec, global->totalWait.ns);
+	
+//	printf("AVERAGE TIMES\n");
+}
+
+bool canSchedule() {
+	return !(global->spawnedProcessCount == PROCESSES_TOTAL_MAX && global->exitedProcessCount == PROCESSES_TOTAL_MAX);
 }
 
 bool canSpawnProcess() {
@@ -289,6 +224,7 @@ void initializePCB(PCB *pcb, unsigned int localPID, pid_t actualPID) {
 	
 	clearTime(&pcb->arrival);
 	clearTime(&pcb->exit);
+	clearTime(&pcb->burst);
 	clearTime(&pcb->cpu);
 	clearTime(&pcb->queue);
 	clearTime(&pcb->block);
@@ -386,10 +322,12 @@ void cleanupResources(bool forced) {
 }
 
 void handleSignal(int signal) {
-	printf("TEST1\n");
-//	kill(0, SIGUSR1);
-//	while(wait(NULL) > 0);//while (waitpid(-1, NULL, WNOHANG) >= 0);
-	printf("TEST2\n");
+	printf("Before killing children\n");
+	kill(0, signal == SIGALRM ? SIGUSR1 : SIGTERM);
+	//pid_t pid;
+	while(wait(NULL) > 0);//while ((pid = waitpid(-1, NULL, WNOHANG)) > -1);
+	printf("After killing children\n");
+	
 	cleanupResources(true);
 	exit(EXIT_SUCCESS);
 }
@@ -418,7 +356,6 @@ void onProcessTerminated(PCB *pcb) {
 	copyTime(&global->shared->system, &pcb->exit);
 	
 	int percent = atoi(global->message->text);
-	
 	int cost = -1;
 	switch (pcb->priority) {
 		case 0: cost = 10000; break;
@@ -426,10 +363,8 @@ void onProcessTerminated(PCB *pcb) {
 		case 2: cost = 2500; break;
 		case 3: cost = 1250; break;
 	}
-	
 	int time = (int) ((double) cost * ((double) percent / (double) 100));
-	
-	printf("percent: %d, cost: %d, time: %d\n", percent, cost, time);
+//	printf("percent: %d, cost: %d, time: %d\n", percent, cost, time);
 	
 	addTime(&pcb->cpu, 0, time);
 	addTime(&global->shared->system, 0, time);
@@ -454,14 +389,25 @@ void onProcessExpired(PCB *pcb) {
 	int previousPriority = pcb->priority;
 	int nextPriority = pcb->priority;
 	
-	int time = 500;
+	int percent = 100;
+	int cost = -1;
+	switch (pcb->priority) {
+		case 0: cost = 10000; break;
+		case 1: cost = 5000; break;
+		case 2: cost = 2500; break;
+		case 3: cost = 1250; break;
+	}
+	int time = (int) ((double) cost * ((double) percent / (double) 100));
+//	printf("percent: %d, cost: %d, time: %d\n", percent, cost, time);
+	
+	clearTime(&pcb->burst);
+	addTime(&pcb->burst, 0, time);
 	addTime(&pcb->cpu, 0, time);
 	addTime(&pcb->queue, 0, time);
 	addTime(&global->shared->system, 0, time);
 	
 	if (pcb->priority == 0) {
 		queue_push(getActiveSet()[nextPriority], pcb->localPID);
-		
 		logger("%-6s Priority: %d, PID: %d", "--*---", pcb->priority, pcb->localPID);
 	} else {
 		if (pcb->priority < QUEUE_SET_COUNT - 1 && pcb->queue.sec >= 0 && pcb->queue.ns >= 1000) {
@@ -479,6 +425,11 @@ void onProcessExpired(PCB *pcb) {
 }
 
 void onProcessBlocked(PCB *pcb) {
+	receiveMessage(global->message, getParentQueue(), pcb->actualPID, true);
+	
+	int percent = atoi(global->message->text);
+//	printf("percent: %d\n", percent);
+	
 	logger("%-6s Priority: %d, PID: %d", "---*--", pcb->priority, pcb->localPID);
 	queue_push(getBlockedQueue(), pcb->localPID);
 	global->running = NULL;
@@ -492,6 +443,8 @@ void onProcessUnblocked(PCB *pcb) {
 void onProcessExited(PCB *pcb) {
 	global->exitedProcessCount++;
 	
+	addTime(&global->totalCpu, pcb->cpu.sec, pcb->cpu.ns);
+	addTime(&global->totalBlock, pcb->block.sec, pcb->block.ns);
 	addTime(&global->totalWait, pcb->wait.sec, pcb->wait.ns);
 	
 	releasePCB(pcb);
@@ -518,10 +471,6 @@ bool isProcessRunning() {
 
 bool isProcessRealtime(PCB *pcb) {
 	return pcb->priority == 0;
-}
-
-bool canSchedule() {
-	return !(global->spawnedProcessCount == PROCESSES_TOTAL_MAX && global->exitedProcessCount == PROCESSES_TOTAL_MAX);
 }
 
 void initializeQueues() {

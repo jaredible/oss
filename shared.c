@@ -1,4 +1,5 @@
 #include <libgen.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,8 @@
 #include <sys/msg.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "shared.h"
 
@@ -27,6 +30,7 @@ void init(int argc, char **argv) {
 	programName = argv[0];
 	setvbuf(stdout, NULL, _IONBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);
+//	fprintf(stderr, "%s: PGID: %d, PGRP: %d, PID: %d\n", getProgramName(), getpgid(getpid()), getpgrp(), getpid());
 }
 
 void error(char *fmt, ...) {
@@ -113,8 +117,11 @@ void logger(char *fmt, ...) {
 	vsnprintf(buf, BUFFER_LENGTH, fmt, args);
 	va_end(args);
 	
-	fprintf(fp, buf); // TODO: fix
-	printf("%s: [%010d:%010d] %s\n", basename(programName), shmptr->system.sec, shmptr->system.ns, buf);
+	char buff[BUFFER_LENGTH];
+	snprintf(buff, BUFFER_LENGTH, "%s: [%010d:%010d] %s\n", basename(getProgramName()), shmptr->system.sec, shmptr->system.ns, buf);
+	
+	fprintf(fp, buff);
+	fprintf(stderr, buff);
 	
 	fclose(fp);
 }
@@ -153,4 +160,12 @@ Time subtractTime(Time *minuend, Time *subtrahend) {
 
 void showTime(Time *time) {
 	printf("%d:%d\n", time->sec, time->ns);
+}
+
+void sigact(int signum, void handler(int)) {
+	struct sigaction sa;
+	if (sigemptyset(&sa.sa_mask) == -1) crash("sigemptyset");
+	sa.sa_handler = handler;
+	sa.sa_flags = 0;
+	if (sigaction(signum, &sa, NULL) == -1) crash("sigaction");
 }
