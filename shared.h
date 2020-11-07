@@ -14,8 +14,8 @@
 #include <sys/types.h>
 
 #define BUFFER_LENGTH 1024
-#define PROCESSES_CONCURRENT_MAX 2
-#define PROCESSES_TOTAL_MAX 4
+#define PROCESSES_CONCURRENT_MAX 10
+#define PROCESSES_TOTAL_MAX 20
 #define PATH_LOG "./output.log"
 
 //#define QUANTUM_BASE_MIN 1e3

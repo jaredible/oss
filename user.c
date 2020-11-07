@@ -23,8 +23,6 @@ void simulateProcessBlocked();
 bool shouldTerminate();
 bool shouldExpire();
 
-void handleSignal(int signal);
-
 static Global *global = NULL;
 
 int main(int argc, char **argv) {
@@ -36,9 +34,6 @@ int main(int argc, char **argv) {
 
 void initializeProgram(int argc, char **argv) {
 	init(argc, argv);
-	
-	sigact(SIGTERM, handleSignal);
-	sigact(SIGUSR1, handleSignal);
 	
 	int localPID;
 	
@@ -83,12 +78,6 @@ void simulateProcessExpired() {
 }
 
 void simulateProcessBlocked() {
-	Time unblock = { .sec = global->shared->system.sec, .ns = global->shared->system.ns };
-	int addsec = rand() % (3 + 1);
-	int addns = rand() % (1000 + 1);
-	addTime(&unblock, addsec, addns);
-	addTime(&global->pcb->block, addsec, addns);
-	
 	sendMessage(&global->message, getParentQueue(), global->pcb->actualPID, "BLOCKED", false);
 	
 	int rp = (rand() % 99) + 1;
@@ -97,20 +86,21 @@ void simulateProcessBlocked() {
 	
 	sendMessage(&global->message, getParentQueue(), global->pcb->actualPID, buf, true);
 	
+	Time unblock = { .sec = global->shared->system.sec, .ns = global->shared->system.ns };
+	int addsec = rand() % (3 + 1);
+	int addns = rand() % (1000 + 1);
+	addTime(&unblock, addsec, addns);
+	addTime(&global->pcb->block, addsec, addns);
+	
 	while (!(global->shared->system.sec >= unblock.sec && global->shared->system.ns >= unblock.ns));
 	
 	sendMessage(&global->message, getParentQueue(), global->pcb->actualPID, "UNBLOCKED", false);
 }
 
 bool shouldTerminate() {
-	return rand() % 100 < 50;
+	return rand() % 100 < 10;
 }
 
 bool shouldExpire() {
 	return rand() % 2 == 0;
-}
-
-void handleSignal(int signal) {
-	printf("signal: %d\n", signal);
-	exit(EXIT_FAILURE);
 }
