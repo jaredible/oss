@@ -1,3 +1,8 @@
+/*
+ * user.c 11/9/20
+ * Jared Diehl (jmddnb@umsystem.edu)
+ */
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,8 +25,8 @@ void simulateProcessTerminated();
 void simulateProcessExpired();
 void simulateProcessBlocked();
 
-bool shouldTerminate();
-bool shouldExpire();
+bool shouldTerminate(PCB*);
+bool shouldExpire(PCB*);
 
 static Global *global = NULL;
 
@@ -55,8 +60,8 @@ void simulateUser() {
 	while (true) {
 		receiveMessage(&global->message, getChildQueue(), global->pcb->actualPID, true);
 		
-		if (shouldTerminate()) simulateProcessTerminated();
-		else if (shouldExpire()) simulateProcessExpired();
+		if (shouldTerminate(global->pcb)) simulateProcessTerminated();
+		else if (shouldExpire(global->pcb)) simulateProcessExpired();
 		else simulateProcessBlocked();
 	}
 }
@@ -97,10 +102,10 @@ void simulateProcessBlocked() {
 	sendMessage(&global->message, getParentQueue(), global->pcb->actualPID, "UNBLOCKED", false);
 }
 
-bool shouldTerminate() {
-	return rand() % 100 < 10;
+bool shouldTerminate(PCB *pcb) {
+	return rand() % 100 < (pcb->priority == 0 ? 20 : 5);
 }
 
-bool shouldExpire() {
-	return rand() % 2 == 0;
+bool shouldExpire(PCB *pcb) {
+	return rand() % 100 < 80;
 }

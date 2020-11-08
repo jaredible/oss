@@ -1,10 +1,6 @@
 /*
- * shared.h 11/02/20
+ * shared.h 11/9/20
  * Jared Diehl (jmddnb@umsystem.edu)
- * ---------------------------------
- * Provides data structures,
- * functions, and variables that are
- * used in multiple modules.
  */
 
 #ifndef SHARED_H
@@ -14,24 +10,17 @@
 #include <sys/types.h>
 
 #define BUFFER_LENGTH 1024
-#define PROCESSES_CONCURRENT_MAX 10
-#define PROCESSES_TOTAL_MAX 20
+#define PROCESSES_CONCURRENT_MAX 18
+#define PROCESSES_TOTAL_MAX 100
 #define PATH_LOG "./output.log"
 
-//#define QUANTUM_BASE_MIN 1e3
-//#define QUANTUM_BASE_MAX 1e5
-//#define QUANTUM_BASE_DEFAULT 1e4
-//#define TIMEOUT_MIN 1
-//#define TIMEOUT_MAX 10
-//#define TIMEOUT_DEFAULT 3
+#define QUANTUM_BASE 1e2
 
 #define QUEUE_SET_COUNT 4
 #define QUEUE_SET_SIZE PROCESSES_CONCURRENT_MAX
 #define QUEUE_BLOCK_SIZE PROCESSES_CONCURRENT_MAX
 
 #define EXIT_STATUS_OFFSET 20
-
-enum EventType { TERMINATED, EXPIRED, BLOCKED, UNBLOCKED };
 
 typedef struct {
 	long type;
@@ -40,7 +29,7 @@ typedef struct {
 
 /* Time data */
 typedef struct {
-	unsigned int sec; /* seconds */ // TODO: rename to "s"
+	unsigned int sec; /* seconds */
 	unsigned int ns; /* nanoseconds */
 } Time;
 
@@ -51,7 +40,6 @@ typedef struct {
 	unsigned int priority; /* Queue index */
 	Time arrival; /* Time created */
 	Time exit; /* Time exited */
-	Time burst; /* Time of last burst */
 	Time cpu; /* Time spent on CPU */
 	Time queue; /* Time spent in queue */
 	Time block; /* Time spent blocked */
@@ -63,7 +51,6 @@ typedef struct {
 typedef struct {
 	Time system;
 	PCB ptable[PROCESSES_CONCURRENT_MAX];
-	unsigned int quantum; /* Base quantum for queues */ // TODO: rename?
 } Shared;
 
 void init(int, char**);
@@ -77,8 +64,8 @@ Shared *getSharedMemory();
 
 void allocateMessageQueues(bool);
 void releaseMessageQueues();
-void sendMessage(Message*, int, pid_t, char*, bool);
-void receiveMessage(Message*, int, pid_t, bool);
+int sendMessage(Message*, int, pid_t, char*, bool);
+int receiveMessage(Message*, int, pid_t, bool);
 int getParentQueue();
 int getChildQueue();
 
@@ -92,5 +79,7 @@ Time subtractTime(Time*, Time*);
 void showTime(Time*);
 
 void sigact(int, void(int));
+int getQueueQuantum(int);
+int getUserQuantum(int);
 
 #endif

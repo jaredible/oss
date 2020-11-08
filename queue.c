@@ -1,3 +1,8 @@
+/*
+ * queue.c 11/9/20
+ * Jared Diehl (jmddnb@umsystem.edu)
+ */
+
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>

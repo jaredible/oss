@@ -1,0 +1,28 @@
+# CS4760 Project 4: Process Scheduling
+
+##### DESCRIPTION
+This program simulates scheduling processes (real-time or normal) in an operating system.
+
+*----- = created
+-*---- = scheduled
+--*--- = expired
+---*-- = blocked
+----*- = unblocked
+-----* = terminated
+
+##### BUILD
+make
+
+##### EXECUTION
+./oss [-h]
+
+##### ADJUSTMENTS
+- No throughput calculation
+- No CPU utilization calculation
+- Log file lines are always below 10000
+
+##### ISSUES
+None known.
+
+##### CHANGELOG
+

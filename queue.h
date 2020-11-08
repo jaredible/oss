@@ -1,3 +1,8 @@
+/*
+ * queue.h 11/9/20
+ * Jared Diehl (jmddnb@umsystem.edu)
+ */
+
 #ifndef QUEUE_H
 #define QUEUE_H
 

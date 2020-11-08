@@ -1,4 +1,10 @@
+/*
+ * shared.c 11/9/20
+ * Jared Diehl (jmddnb@umsystem.edu)
+ */
+
 #include <libgen.h>
+#include <math.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -87,16 +93,14 @@ void releaseMessageQueues() {
 	if (cmsqid > 0 && msgctl(cmsqid, IPC_RMID, NULL) == -1) crash("msgctl");
 }
 
-void sendMessage(Message *message, int msqid, pid_t address, char *msg, bool wait) {
+int sendMessage(Message *message, int msqid, pid_t address, char *msg, bool wait) {
 	message->type = address;
 	strncpy(message->text, msg, BUFFER_LENGTH);
-	if (msgsnd(msqid, message, sizeof(Message), wait ? 0 : IPC_NOWAIT) == -1) crash("msgsnd");
-//	printf("Sent %s to %ld\n", message->text, message->type);
+	return msgsnd(msqid, message, sizeof(Message), wait ? 0 : IPC_NOWAIT);
 }
 
-void receiveMessage(Message *message, int msqid, pid_t address, bool wait) {
-	if (msgrcv(msqid, message, sizeof(Message), address, wait ? 0 : IPC_NOWAIT) == -1) crash("msgrcv");
-//	printf("Received %s from %ld\n", message->text, message->type);
+int receiveMessage(Message *message, int msqid, pid_t address, bool wait) {
+	return msgrcv(msqid, message, sizeof(Message), address, wait ? 0 : IPC_NOWAIT);
 }
 
 int getParentQueue() {
@@ -168,4 +172,13 @@ void sigact(int signum, void handler(int)) {
 	sa.sa_handler = handler;
 	sa.sa_flags = 0;
 	if (sigaction(signum, &sa, NULL) == -1) crash("sigaction");
+}
+
+int getQueueQuantum(int queue) {
+	if (queue > 0 && queue < (QUEUE_SET_COUNT - 1)) return QUANTUM_BASE * pow(2, queue);
+	return -1;
+}
+
+int getUserQuantum(int queue) {
+	return QUANTUM_BASE / pow(2, queue);
 }
