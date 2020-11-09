@@ -183,12 +183,26 @@ void showTime(Time *time) {
 	printf("%ld:%ld\n", time->sec, time->ns);
 }
 
-void sigact(int signum, void handler(int)) {
-	struct sigaction sa;
-	if (sigemptyset(&sa.sa_mask) == -1) crash("sigemptyset");
-	sa.sa_handler = handler;
-	sa.sa_flags = 0;
-	if (sigaction(signum, &sa, NULL) == -1) crash("sigaction");
+void subTime(Time *a, Time *b) {
+	long epoch1 = a->sec * 1e9 + a->ns;
+	long epoch2 = b->sec * 1e9 + b->ns;
+	
+	long diff = abs(epoch1 - epoch2);
+	
+	Time temp = { 0, 0 };
+	
+	addTime(&temp, diff);
+	
+	a->sec = temp.sec;
+	a->ns = temp.ns;
+}
+
+void avgTime(Time *time, int count) {
+	long epoch = (time->sec * 1e9 + time->ns) / count;
+	Time temp = { 0, 0 };
+	addTime(&temp, epoch);
+	time->sec = temp.sec;
+	time->ns = temp.ns;
 }
 
 int getQueueQuantum(int queue) {

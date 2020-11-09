@@ -20,11 +20,6 @@
 #include "queue.h"
 #include "shared.h"
 
-#define MAX_TIME_BETWEEN_NEW_PROCS_NS 150000
-#define MAX_TIME_BETWEEN_NEW_PROCS_SEC 1
-
-typedef unsigned long int bv_t;
-
 typedef struct {
 	Shared *shared;
 	Queue *qset1[QUEUE_SET_COUNT];
@@ -142,23 +137,6 @@ void initializeProgram(int argc, char **argv) {
 	if (fclose(fp) == EOF) crash("fclose");
 }
 
-void addTimeLong(Time *time, long amount) {
-	long newns = time->ns + amount;
-	while (newns >= 1e9) {
-		newns -= 1e9;
-		time->sec++;
-	}
-	time->ns = newns;
-}
-
-void avgTime(Time *time, int count) {
-	long epoch = (time->sec * 1e9 + time->ns) / count;
-	Time temp = { 0, 0 };
-	addTimeLong(&temp, epoch);
-	time->sec = temp.sec;
-	time->ns = temp.ns;
-}
-
 void simulateOS() {
 	global->message = (Message*) malloc(sizeof(Message));
 	
@@ -190,6 +168,8 @@ void simulateOS() {
 		
 		if (!canSchedule()) break;
 	}
+	
+	if (quit) printf("TIMEOUT REACHED\n\n");
 	
 	printf("SUMMARY\n");
 	printf("\tReal-time processes: %d\n", global->processCountRealtime);
@@ -253,7 +233,7 @@ void spawnProcess() {
 void initializePCB(PCB *pcb, unsigned int localPID, pid_t actualPID) {
 	pcb->localPID = localPID;
 	pcb->actualPID = actualPID;
-	pcb->priority = rand() % 100 < 5 ? 0 : 1;
+	pcb->priority = rand() % 100 < CHANCE_PROCESS_REALTIME ? 0 : 1;
 	
 	if (pcb->priority == 0) global->processCountRealtime++;
 	else global->processCountNormal++;
@@ -285,10 +265,9 @@ void handleProcessScheduling() {
 
 void handleRunningProcess() {
 	if (isProcessRunning()) {
+		/* Since a process running, check what its message */
 		PCB *pcb = global->running;
-		
 		receiveMessage(global->message, getParentQueue(), pcb->actualPID, true);
-		
 		if (strcmp(global->message->text, "TERMINATED") == 0) onProcessTerminated(pcb);
 		else if (strcmp(global->message->text, "EXPIRED") == 0) onProcessExpired(pcb);
 		else if (strcmp(global->message->text, "BLOCKED") == 0) onProcessBlocked(pcb);
@@ -298,11 +277,13 @@ void handleRunningProcess() {
 void handleBlockedProcesses() {
 	Queue *blocked = getBlockedQueue();
 	if (!queue_empty(blocked)) {
+		/* Fast-forward into future */
 		if (!isProcessRunning()) {
 			addTime(&global->shared->system, 5e6);
 			addTime(&global->idle, 5e6);
 		}
 		
+		/* Check to see if a process is unblocked */
 		int i;
 		for (i = 0; i < blocked->size; i++) {
 			PCB *pcb = getPCB(queue_pop(blocked));
@@ -318,6 +299,7 @@ void handleBlockedProcesses() {
 void tryScheduleProcess() {
 	if (isProcessRunning()) return;
 	
+	/* Moving from highest priority queue to lowest, if a process exists in it, then run it and return */
 	int i;
 	for (i = 0; i < QUEUE_SET_COUNT; i++) {
 		if (!queue_empty(getActiveSet()[i])) {
@@ -358,17 +340,20 @@ void scheduleProcess(PCB *pcb) {
 void cleanupResources(bool forced) {
 	releaseSharedMemory();
 	releaseMessageQueues();
+	free(global);
 }
 
 void handleSignal(int signal) {
 	if (signal == SIGALRM) quit = true;
 	else if (signal == SIGINT) {
+		/* Kill all still-running child processes */
 		int i;
 		for (i = 0; i < PROCESSES_CONCURRENT_MAX; i++) {
 			PCB *pcb = &global->shared->ptable[i];
 			if (pcb->localPID != 0) kill(pcb->actualPID, SIGTERM);
 		}
 		while (wait(NULL) > 0);
+		
 		cleanupResources(true);
 		exit(EXIT_SUCCESS);
 	}
@@ -390,20 +375,6 @@ void onProcessCreated(PCB *pcb) {
 
 void onProcessScheduled(PCB *pcb) {
 	logger("%-6s PID: %2d, Priority: %d", "-*----", pcb->localPID, pcb->priority);
-}
-
-void subTime(Time *a, Time *b) {
-	long epoch1 = a->sec * 1e9 + a->ns;
-	long epoch2 = b->sec * 1e9 + b->ns;
-	
-	long diff = abs(epoch1 - epoch2);
-	
-	Time temp = { 0, 0 };
-	
-	addTimeLong(&temp, diff);
-	
-	a->sec = temp.sec;
-	a->ns = temp.ns;
 }
 
 void onProcessTerminated(PCB *pcb) {
@@ -452,6 +423,7 @@ void onProcessExpired(PCB *pcb) {
 		queue_push(getActiveSet()[nextPriority], pcb->localPID);
 		logger("%-6s PID: %2d, Priority: %d", "--*---", pcb->localPID, pcb->priority);
 	} else { /* Process is normal */
+		/* Determine if this process can shift priority */
 		int n = getQueueQuantum(pcb->priority);
 		if (n != -1 && pcb->queue.ns >= n) {
 			nextPriority++;
@@ -500,6 +472,7 @@ void onProcessExited(PCB *pcb) {
 	releasePCB(pcb);
 }
 
+/* Returns an index of the bit vector that is 0 */
 int findAvailableLocalPID() {
 	unsigned int i = 1, pos = 1;
 	

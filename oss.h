@@ -18,6 +18,13 @@
 #define BIT_FLIP(a, b) ((a) ^= (1ULL << (b)))
 #define BIT_CHECK(a, b) (!!((a) & (1ULL << (b))))
 
+#define MAX_TIME_BETWEEN_NEW_PROCS_SEC 1
+#define MAX_TIME_BETWEEN_NEW_PROCS_NS 15000
+
+#define CHANCE_PROCESS_REALTIME 5
+
+typedef unsigned long int bv_t; /* Type-defined bit-vector */
+
 void usage(int status) {
 	if (status != EXIT_SUCCESS) fprintf(stderr, "Try '%s -h' for more information\n", getProgramName());
 	else {

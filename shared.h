@@ -71,15 +71,15 @@ int getChildQueue();
 void logger(char*, ...);
 void cleanup();
 
-/* Time helpers */
 void setTime(Time*, long);
 void addTime(Time*, long);
 void clearTime(Time*);
 void copyTime(Time*, Time*);
 Time subtractTime(Time*, Time*);
 void showTime(Time*);
+void subTime(Time*, Time*);
+void avgTime(Time*, int);
 
-void sigact(int, void(int));
 int getQueueQuantum(int);
 int getUserQuantum(int);
 
