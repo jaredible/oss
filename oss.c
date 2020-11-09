@@ -136,6 +136,7 @@ void initializeProgram(int argc, char **argv) {
 	
 	global->shared = getSharedMemory();
 	
+	/* Clear log file */
 	FILE *fp;
 	if ((fp = fopen(PATH_LOG, "w")) == NULL) crash("fopen");
 	if (fclose(fp) == EOF) crash("fclose");
@@ -174,6 +175,7 @@ void simulateOS() {
 		
 		handleProcessScheduling();
 		
+		/* Check if an actual user process has terminated */
 		int status;
 		pid_t pid = waitpid(-1, &status, WNOHANG);
 		if (pid > 0) {
@@ -215,7 +217,7 @@ void simulateOS() {
 }
 
 bool canSchedule() {
-	return global->exitedProcessCount < global->spawnedProcessCount;
+	return global->exitedProcessCount < global->spawnedProcessCount || !quit;
 }
 
 bool canSpawnProcess() {

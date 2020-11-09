@@ -55,7 +55,7 @@ void initializeProgram(int argc, char **argv) {
 }
 
 void simulateUser() {
-	srand(global->pcb->localPID);//time(NULL) ^ (getpid() << 16));
+	srand(time(NULL) ^ (getpid() << 16));
 	
 	while (true) {
 		receiveMessage(&global->message, getChildQueue(), global->pcb->actualPID, true);
