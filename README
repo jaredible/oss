@@ -1,7 +1,8 @@
 # CS4760 Project 4: Process Scheduling
 
 ##### DESCRIPTION
-This program simulates scheduling processes (real-time or normal) in an operating system.
+This program simulates scheduling processes (real-time or normal) in an
+operating system. Process-scheduling output and statistics will be displayed.
 
 *----- = created
 -*---- = scheduled
