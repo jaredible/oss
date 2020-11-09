@@ -42,6 +42,8 @@ typedef struct {
 	Time totalCpu;
 	Time totalBlock;
 	Time totalWait;
+	int processCountRealtime;
+	int processCountNormal;
 } Global;
 
 void initializeProgram(int, char**);
@@ -188,7 +190,8 @@ void simulateOS() {
 	}
 	
 	printf("SUMMARY\n");
-	printf("\tProcess count: %d\n", global->exitedProcessCount);
+	printf("\tReal-time processes: %d\n", global->processCountRealtime);
+	printf("\tNormal processes: %d\n", global->processCountNormal);
 	
 	printf("TOTALS\n");
 	printf("\tCPU:    %ld:%ld\n", global->totalCpu.sec, global->totalCpu.ns);
@@ -249,6 +252,9 @@ void initializePCB(PCB *pcb, unsigned int localPID, pid_t actualPID) {
 	pcb->localPID = localPID;
 	pcb->actualPID = actualPID;
 	pcb->priority = rand() % 100 < 5 ? 0 : 1;
+	
+	if (pcb->priority == 0) global->processCountRealtime++;
+	else global->processCountNormal++;
 	
 	clearTime(&pcb->arrival);
 	clearTime(&pcb->exit);

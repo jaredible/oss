@@ -103,7 +103,7 @@ void simulateProcessBlocked() {
 }
 
 bool shouldTerminate(PCB *pcb) {
-	return rand() % 100 < (pcb->priority == 0 ? 20 : 5);
+	return rand() % 100 < (pcb->priority == 0 ? 20 : 10);
 }
 
 bool shouldExpire(PCB *pcb) {

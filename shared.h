@@ -15,7 +15,7 @@
 #define TIMEOUT 3
 #define PATH_LOG "./output.log"
 
-#define QUANTUM_BASE 1e4
+#define QUANTUM_BASE 1e7
 
 #define QUEUE_SET_COUNT 4
 #define QUEUE_SET_SIZE PROCESSES_CONCURRENT_MAX

@@ -24,7 +24,7 @@ void usage(int status) {
 		printf("NAME\n");
 		printf("       %s - OS process-scheduling simulator\n", getProgramName());
 		printf("USAGE\n");
-		printf("       %s -h\n", getProgramName());
+		printf("       %s [-h]\n", getProgramName());
 		printf("DESCRIPTION\n");
 		printf("       -h       : Prints usage information and exits\n");
 	}
