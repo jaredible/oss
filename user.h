@@ -1,3 +1,8 @@
+/*
+ * user.h 11/9/20
+ * Jared Diehl (jmddnb@umsystem.edu)
+ */
+
 #ifndef USER_H
 #define USER_H
 
