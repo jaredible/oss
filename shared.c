@@ -122,7 +122,7 @@ void logger(char *fmt, ...) {
 	va_end(args);
 	
 	char buff[BUFFER_LENGTH];
-	snprintf(buff, BUFFER_LENGTH, "%s: [%010d:%010d] %s\n", basename(getProgramName()), shmptr->system.sec, shmptr->system.ns, buf);
+	snprintf(buff, BUFFER_LENGTH, "%s: [%010ld:%010ld] %s\n", basename(getProgramName()), shmptr->system.sec, shmptr->system.ns, buf);
 	
 	fprintf(fp, buff);
 	fprintf(stderr, buff);
@@ -135,6 +135,23 @@ void cleanup() {
 	releaseMessageQueues();
 }
 
+void setTime(Time *time, long ns) {
+	time->sec = 0;
+	time->ns = ns;
+	while (time->ns >= 1e9) {
+		time->ns -= 1e9;
+		time->sec += 1;
+	}
+}
+
+void addTime(Time *time, long ns) {
+	time->ns += ns;
+	while (time->ns >= 1e9) {
+		time->ns -= 1e9;
+		time->sec += 1;
+	}
+}
+
 void clearTime(Time *time) {
 	time->sec = 0;
 	time->ns = 0;
@@ -144,14 +161,14 @@ void copyTime(Time *source, Time *target) {
 	memcpy(target, source, sizeof(Time));
 }
 
-void addTime(Time *time, int sec, int ns) {
-	time->sec += sec;
-	time->ns += ns;
-	while (time->ns >= 1e9) {
-		time->ns -= 1e9;
-		time->sec++;
-	}
-}
+//void addTime(Time *time, int sec, int ns) {
+//	time->sec += sec;
+//	time->ns += ns;
+//	while (time->ns >= 1e9) {
+//		time->ns -= 1e9;
+//		time->sec++;
+//	}
+//}
 
 Time subtractTime(Time *minuend, Time *subtrahend) {
 	Time difference = { .sec = minuend->sec - subtrahend->sec, .ns = minuend->ns - subtrahend->ns };
@@ -163,7 +180,7 @@ Time subtractTime(Time *minuend, Time *subtrahend) {
 }
 
 void showTime(Time *time) {
-	printf("%d:%d\n", time->sec, time->ns);
+	printf("%ld:%ld\n", time->sec, time->ns);
 }
 
 void sigact(int signum, void handler(int)) {

@@ -94,8 +94,8 @@ void simulateProcessBlocked() {
 	Time unblock = { .sec = global->shared->system.sec, .ns = global->shared->system.ns };
 	int addsec = rand() % (3 + 1);
 	int addns = rand() % (1000 + 1);
-	addTime(&unblock, addsec, addns);
-	addTime(&global->pcb->block, addsec, addns);
+	addTime(&unblock, addsec * 1e9 + addns);
+	addTime(&global->pcb->block, addsec * 1e9 + addns);
 	
 	while (!(global->shared->system.sec >= unblock.sec && global->shared->system.ns >= unblock.ns));
 	

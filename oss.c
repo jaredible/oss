@@ -84,6 +84,8 @@ Queue *getBlockedQueue();
 
 static Global *global = NULL;
 
+static volatile bool quit = false;
+
 int main(int argc, char **argv) {
 	global = (Global*) malloc(sizeof(Global));
 	initializeProgram(argc, argv);
@@ -125,7 +127,7 @@ void initializeProgram(int argc, char **argv) {
 	
 	if (!ok) usage(EXIT_FAILURE);
 	
-//	timer(3);
+	timer(TIMEOUT);
 	
 	allocateSharedMemory(true);
 	allocateMessageQueues(true);
@@ -159,16 +161,14 @@ void simulateOS() {
 	
 	initializeQueues();
 	
-	global->shared->system.sec = 0;
-	global->shared->system.ns = 0;
-	global->nextSpawnAttempt.sec = 0;
-	global->nextSpawnAttempt.ns = 0;
+	setTime(&global->shared->system, 0);
+	setTime(&global->nextSpawnAttempt, 0);
 	
 	srand(time(NULL));
 	
-	while (canSchedule()) {
-		addTime(&global->shared->system, 0, 1e4);
-		addTime(&global->idle, 0, 1e4);
+	while (true) {
+		addTime(&global->shared->system, 1e4);
+		addTime(&global->idle, 1e4);
 		
 		handleProcessScheduling();
 		
@@ -183,23 +183,19 @@ void simulateOS() {
 				}
 			}
 		}
+		
+		if (!canSchedule()) break;
 	}
 	
-//	copyTime(&global->shared->system, &global->totalSystem);
-//	printf("%i:%i\n", global->totalSystem.sec, global->totalSystem.ns);
+	printf("SUMMARY\n");
+	printf("\tProcess count: %d\n", global->exitedProcessCount);
 	
-	printf("\nSUMMARY\n");
-	printf("Process count: %d\n", global->exitedProcessCount);
-	
-	printf("\nTOTAL TIMES\n");
-	printf("CPU: %d:%d\n", global->totalCpu.sec, global->totalCpu.ns);
-	printf("Block: %d:%d\n", global->totalBlock.sec, global->totalBlock.ns);
-	printf("Wait: %d:%d\n", global->totalWait.sec, global->totalWait.ns);
-	printf("System: %d:%d\n", global->shared->system.sec, global->shared->system.ns);
-	printf("Idle: %d:%d\n", global->idle.sec, global->idle.ns);
-	
-//	double epoch = (((double) (global->totalCpu.sec * 1e9 + global->totalCpu.ns)) / ((double) global->exitedProcessCount)) / ((double) 100);
-//	printf("Throughput: %.2f\n", epoch); // TODO: correct?
+	printf("TOTALS\n");
+	printf("\tCPU:    %ld:%ld\n", global->totalCpu.sec, global->totalCpu.ns);
+	printf("\tBlock:  %ld:%ld\n", global->totalBlock.sec, global->totalBlock.ns);
+	printf("\tWait:   %ld:%ld\n", global->totalWait.sec, global->totalWait.ns);
+	printf("\tSystem: %ld:%ld\n", global->shared->system.sec, global->shared->system.ns);
+	printf("\tIdle:   %ld:%ld\n", global->idle.sec, global->idle.ns);
 	
 	avgTime(&global->totalCpu, global->exitedProcessCount);
 	avgTime(&global->totalBlock, global->exitedProcessCount);
@@ -207,22 +203,22 @@ void simulateOS() {
 	avgTime(&global->shared->system, global->exitedProcessCount);
 	avgTime(&global->idle, global->exitedProcessCount);
 	
-	printf("\nAVERAGE TIMES\n");
-	printf("CPU: %d:%d\n", global->totalCpu.sec, global->totalCpu.ns);
-	printf("Block: %d:%d\n", global->totalBlock.sec, global->totalBlock.ns);
-	printf("Wait: %d:%d\n", global->totalWait.sec, global->totalWait.ns);
-	printf("System: %d:%d\n", global->shared->system.sec, global->shared->system.ns);
-	printf("Idle: %d:%d\n", global->idle.sec, global->idle.ns);
+	printf("AVERAGES\n");
+	printf("\tCPU:    %ld:%ld\n", global->totalCpu.sec, global->totalCpu.ns);
+	printf("\tBlock:  %ld:%ld\n", global->totalBlock.sec, global->totalBlock.ns);
+	printf("\tWait:   %ld:%ld\n", global->totalWait.sec, global->totalWait.ns);
+	printf("\tSystem: %ld:%ld\n", global->shared->system.sec, global->shared->system.ns);
+	printf("\tIdle:   %ld:%ld\n", global->idle.sec, global->idle.ns);
 }
 
 bool canSchedule() {
-	return !(global->spawnedProcessCount == PROCESSES_TOTAL_MAX && global->exitedProcessCount == PROCESSES_TOTAL_MAX);
+	return global->exitedProcessCount < global->spawnedProcessCount;
 }
 
 bool canSpawnProcess() {
 	Time *system = &global->shared->system;
 	Time *next = &global->nextSpawnAttempt;
-	return global->spawnedProcessCount < PROCESSES_TOTAL_MAX && system->sec >= next->sec && system->ns >= next->ns && global->spawnedProcessCount < PROCESSES_TOTAL_MAX;
+	return !quit && global->spawnedProcessCount < PROCESSES_TOTAL_MAX && system->sec >= next->sec && system->ns >= next->ns && global->spawnedProcessCount < PROCESSES_TOTAL_MAX;
 }
 
 void trySpawnProcess() {
@@ -295,8 +291,8 @@ void handleBlockedProcesses() {
 	Queue *blocked = getBlockedQueue();
 	if (!queue_empty(blocked)) {
 		if (!isProcessRunning()) {
-			addTime(&global->shared->system, 0, 5e6);
-			addTime(&global->idle, 0, 5e6);
+			addTime(&global->shared->system, 5e6);
+			addTime(&global->idle, 5e6);
 		}
 		
 		int i;
@@ -357,14 +353,17 @@ void cleanupResources(bool forced) {
 }
 
 void handleSignal(int signal) {
-	int i;
-	for (i = 0; i < 18; i++) {
-		PCB *pcb = &global->shared->ptable[i];
-		if (pcb->localPID != 0) kill(pcb->actualPID, SIGTERM);
+	if (signal == SIGALRM) quit = true;
+	else if (signal == SIGINT) {
+		int i;
+		for (i = 0; i < PROCESSES_CONCURRENT_MAX; i++) {
+			PCB *pcb = &global->shared->ptable[i];
+			if (pcb->localPID != 0) kill(pcb->actualPID, SIGTERM);
+		}
+		while (wait(NULL) > 0);
+		cleanupResources(true);
+		exit(EXIT_SUCCESS);
 	}
-	while (wait(NULL) > 0);
-	cleanupResources(true);
-	exit(EXIT_SUCCESS);
 }
 
 void onProcessCreated(PCB *pcb) {
@@ -376,13 +375,13 @@ void onProcessCreated(PCB *pcb) {
 	global->nextSpawnAttempt.ns = global->shared->system.ns;
 	int addsec = abs(rand() * rand()) % (MAX_TIME_BETWEEN_NEW_PROCS_SEC + 1);
 	int addns = abs(rand() * rand()) % (MAX_TIME_BETWEEN_NEW_PROCS_NS + 1);
-	addTime(&global->nextSpawnAttempt, addsec, addns);
+	addTime(&global->nextSpawnAttempt, addsec * 1e9 + addns);
 	
-	logger("%-6s Priority: %d, PID: %d", "*-----", pcb->priority, pcb->localPID);
+	logger("%-6s PID: %2d, Priority: %d", "*-----", pcb->localPID, pcb->priority);
 }
 
 void onProcessScheduled(PCB *pcb) {
-	logger("%-6s Priority: %d, PID: %d", "-*----", pcb->priority, pcb->localPID);
+	logger("%-6s PID: %2d, Priority: %d", "-*----", pcb->localPID, pcb->priority);
 }
 
 void subTime(Time *a, Time *b) {
@@ -408,32 +407,25 @@ void onProcessTerminated(PCB *pcb) {
 	int cost = getUserQuantum(pcb->priority);
 	int time = (int) ((double) cost * ((double) percent / (double) 100));
 	
-	addTime(&pcb->cpu, 0, time);
-	addTime(&pcb->queue, 0, time);
-	addTime(&global->shared->system, 0, time);
+	addTime(&pcb->cpu, time);
+	addTime(&pcb->queue, time);
+	addTime(&global->shared->system, time);
 	
 	subTime(&pcb->wait, &pcb->cpu);
 	subTime(&pcb->wait, &pcb->block);
 	
-	/* Calculate process' total time waiting */
-//	pcb->wait.sec = pcb->exit.sec - (pcb->arrival.sec + pcb->cpu.sec);
-//	long epoch = pcb->arrival.ns + pcb->cpu.ns;
-//	if (pcb->exit.ns < epoch) {
-//		pcb->wait.sec--;
-//		pcb->wait.ns += 1e9;
-//		pcb->wait.ns += (pcb->exit.ns - epoch);
-//	} else {
-//		pcb->wait.ns = epoch;
-//	}
-	
-	
 	global->running = NULL;
 	
-	logger("%-6s Priority: %d, PID: %d", "-----*", pcb->priority, pcb->localPID);
-	printf("CPU time: %d:%d\n", pcb->cpu.sec, pcb->cpu.ns);
-	printf("Wait time: %d:%d\n", pcb->wait.sec, pcb->wait.ns);
-	printf("Block time: %d:%d\n", pcb->block.sec, pcb->block.ns);
-	printf("\n");
+	logger("%-6s PID: %2d, Priority: %d", "-----*", pcb->localPID, pcb->priority);
+	printf("\nPROCESS TERMINATED\n");
+	printf("\tActual PID: %d\n", pcb->actualPID);
+	printf("\tLocal PID:  %d\n", pcb->localPID);
+	printf("\tPriority:   %d\n", pcb->priority);
+	printf("\tArrival:    %ld:%ld\n", pcb->arrival.sec, pcb->arrival.ns);
+	printf("\tExit:       %ld:%ld\n", pcb->exit.sec, pcb->exit.ns);
+	printf("\tCPU:        %ld:%ld\n", pcb->cpu.sec, pcb->cpu.ns);
+	printf("\tWait:       %ld:%ld\n", pcb->wait.sec, pcb->wait.ns);
+	printf("\tBlock:      %ld:%ld\n\n", pcb->block.sec, pcb->block.ns);
 }
 
 void onProcessExpired(PCB *pcb) {
@@ -444,13 +436,13 @@ void onProcessExpired(PCB *pcb) {
 	int cost = getUserQuantum(pcb->priority);
 	int time = (int) ((double) cost * ((double) percent / (double) 100));
 	
-	addTime(&pcb->cpu, 0, time);
-	addTime(&pcb->queue, 0, time);
-	addTime(&global->shared->system, 0, time);
+	addTime(&pcb->cpu, time);
+	addTime(&pcb->queue, time);
+	addTime(&global->shared->system, time);
 	
 	if (pcb->priority == 0) { /* Process is real-time */
 		queue_push(getActiveSet()[nextPriority], pcb->localPID);
-		logger("%-6s Priority: %d, PID: %d", "--*---", pcb->priority, pcb->localPID);
+		logger("%-6s PID: %2d, Priority: %d", "--*---", pcb->localPID, pcb->priority);
 	} else { /* Process is normal */
 		int n = getQueueQuantum(pcb->priority);
 		if (n != -1 && pcb->queue.ns >= n) {
@@ -458,9 +450,9 @@ void onProcessExpired(PCB *pcb) {
 			if (nextPriority > QUEUE_SET_COUNT - 1) nextPriority = QUEUE_SET_COUNT - 1;
 			pcb->priority = nextPriority;
 			clearTime(&pcb->queue);
-			logger("%-6s Priority: %d, PID: %d, Shifting: %d -> %d", "--*---", pcb->priority, pcb->localPID, previousPriority, nextPriority);
+			logger("%-6s PID: %2d, Priority: %d <- %d", "--*---", pcb->localPID, nextPriority, previousPriority);
 		} else {
-			logger("%-6s Priority: %d, PID: %d", "--*---", pcb->priority, pcb->localPID);
+			logger("%-6s PID: %2d, Priority: %d", "--*---", pcb->localPID, pcb->priority);
 		}
 		
 		queue_push(getExpiredSet()[nextPriority], pcb->localPID);
@@ -476,26 +468,26 @@ void onProcessBlocked(PCB *pcb) {
 	int cost = getUserQuantum(pcb->priority);
 	int time = (int) ((double) cost * ((double) percent / (double) 100));
 	
-	addTime(&pcb->cpu, 0, time);
-	addTime(&pcb->queue, 0, time);
-	addTime(&global->shared->system, 0, time);
+	addTime(&pcb->cpu, time);
+	addTime(&pcb->queue, time);
+	addTime(&global->shared->system, time);
 	
-	logger("%-6s Priority: %d, PID: %d", "---*--", pcb->priority, pcb->localPID);
+	logger("%-6s PID: %2d, Priority: %d", "---*--", pcb->localPID, pcb->priority);
 	queue_push(getBlockedQueue(), pcb->localPID);
 	global->running = NULL;
 }
 
 void onProcessUnblocked(PCB *pcb) {
 	queue_push(getActiveSet()[pcb->priority], pcb->localPID);
-	logger("%-6s Priority: %d, PID: %d", "----*-", pcb->priority, pcb->localPID);
+	logger("%-6s PID: %2d, Priority: %d", "----*-", pcb->localPID, pcb->priority);
 }
 
 void onProcessExited(PCB *pcb) {
 	global->exitedProcessCount++;
 	
-	addTime(&global->totalCpu, pcb->cpu.sec, pcb->cpu.ns);
-	addTime(&global->totalBlock, pcb->block.sec, pcb->block.ns);
-	addTime(&global->totalWait, pcb->wait.sec, pcb->wait.ns);
+	addTime(&global->totalCpu, pcb->cpu.sec * 1e9 + pcb->cpu.ns);
+	addTime(&global->totalBlock, pcb->block.sec * 1e9 + pcb->block.ns);
+	addTime(&global->totalWait, pcb->wait.sec * 1e9 + pcb->wait.ns);
 	
 	releasePCB(pcb);
 }

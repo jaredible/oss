@@ -12,9 +12,10 @@
 #define BUFFER_LENGTH 1024
 #define PROCESSES_CONCURRENT_MAX 18
 #define PROCESSES_TOTAL_MAX 100
+#define TIMEOUT 3
 #define PATH_LOG "./output.log"
 
-#define QUANTUM_BASE 1e2
+#define QUANTUM_BASE 1e4
 
 #define QUEUE_SET_COUNT 4
 #define QUEUE_SET_SIZE PROCESSES_CONCURRENT_MAX
@@ -27,13 +28,12 @@ typedef struct {
 	char text[BUFFER_LENGTH];
 } Message;
 
-/* Time data */
 typedef struct {
-	unsigned int sec; /* seconds */
-	unsigned int ns; /* nanoseconds */
+	long sec; /* seconds */
+	long ns; /* nanoseconds */
 } Time;
 
-/* Process Control Block (PCB) data */
+/* Process Control Block */
 typedef struct {
 	pid_t actualPID; /* Actual PID */
 	unsigned int localPID; /* Simulated PID */
@@ -47,7 +47,6 @@ typedef struct {
 	Time system; /* Time spent in system */
 } PCB;
 
-/* Shared data between oss and users */
 typedef struct {
 	Time system;
 	PCB ptable[PROCESSES_CONCURRENT_MAX];
@@ -72,9 +71,11 @@ int getChildQueue();
 void logger(char*, ...);
 void cleanup();
 
+/* Time helpers */
+void setTime(Time*, long);
+void addTime(Time*, long);
 void clearTime(Time*);
 void copyTime(Time*, Time*);
-void addTime(Time*, int, int);
 Time subtractTime(Time*, Time*);
 void showTime(Time*);
 
