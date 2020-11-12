@@ -1,0 +1,21 @@
+# CS4760 Project 5: Resource Management
+
+##### DESCRIPTION
+This program simulates managing resources among processes
+in an operating system, and will output its execution.
+
+##### BUILD
+make
+
+##### EXECUTION
+./oss -h
+./oss [-v] [-n x] [-s x] [-t time]
+
+##### ADJUSTMENTS
+- Added more options
+
+##### ISSUES
+None known.
+
+##### CHANGELOG
+
