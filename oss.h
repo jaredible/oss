@@ -25,33 +25,22 @@
 #define BIT_FLIP(a, b) ((a) ^= (1ULL << (b)))
 #define BIT_CHECK(a, b) (!!((a) & (1ULL << (b))))
 
+#define MAX_PROCESSES 18
+#define MAX_RESOURCES 20
+
 typedef unsigned long int bitvector;
 
+typedef struct {
+	int requestMatrix[MAX_PROCESSES][MAX_RESOURCES];
+	int allocationMatrix[MAX_PROCESSES][MAX_RESOURCES];
+	int resourceVector[MAX_RESOURCES];
+	int allocationVector[MAX_RESOURCES];
+} ResourceDescriptor;
+
 /* Program setup */
+void sighandler(int);
 void usage(int);
 void timer(int);
-void sighandler(int);
 void cleanup();
-
-/* Simulation */
-void simulate();
-bool canSimulate();
-void trySpawn();
-bool canSpawn();
-void spawn();
-void initProcess();
-
-/* Process events */
-void onProcessCreated();
-void onProcessRequested();
-void onProcessReleased();
-void onProcessTerminated();
-void onProcessExited();
-
-/* Util */
-int findAvailablePID();
-bool isSafe();
-void displayVector();
-void displayMatrix();
 
 #endif

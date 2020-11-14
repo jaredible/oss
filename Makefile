@@ -1,15 +1,17 @@
 CC		= gcc
 CFLAGS		= -Wall -g
 
-OSS_SRC		= oss.c
-OSS_OBJ		= $(OSS_SRC:.c=.o) shared.o
 OSS		= oss
+OSS_SRC		= oss.c
+OSS_OBJ		= $(OSS_SRC:.c=.o) shared.o time.o
 
-USER_SRC	= user.c
-USER_OBJ	= $(USER_SRC:.c=.o) shared.o
 USER		= user
+USER_SRC	= user.c
+USER_OBJ	= $(USER_SRC:.c=.o) shared.o time.o
 
 OUTPUT		= $(OSS) $(USER)
+
+.PHONY: all clean
 
 all: $(OUTPUT)
 
@@ -22,6 +24,5 @@ $(USER): $(USER_OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
-.PHONY: clean
 clean:
 	/bin/rm -f $(OUTPUT) *.o *.log

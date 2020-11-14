@@ -19,21 +19,21 @@ char *getProgramName() {
 	return programName;
 }
 
-//void error(char *fmt, ...) {
-//	char buf[BUFFER_LENGTH];
-//	va_list args;
-//	va_start(args, fmt);
-//	vsnprintf(buf, BUFFER_LENGTH, fmt, args);
-//	va_end(args);
-//	fprintf(stderr, "%s: %s\n", getProgramName(), buf);
-//}
+void error(char *fmt, ...) {
+	char buf[BUFFER_LENGTH];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buf, BUFFER_LENGTH, fmt, args);
+	va_end(args);
+	fprintf(stderr, "%s: %s\n", getProgramName(), buf);
+}
 
-//void crash(char *msg) {
-//	char buf[BUFFER_LENGTH];
-//	snprintf(buf, BUFFER_LENGTH, "%s: %s", getProgramName(), msg);
-//	perror(buf);
-//	exit(EXIT_FAILURE);
-//}
+void crash(char *msg) {
+	char buf[BUFFER_LENGTH];
+	snprintf(buf, BUFFER_LENGTH, "%s: %s", getProgramName(), msg);
+	perror(buf);
+	exit(EXIT_FAILURE);
+}
 
 void output(char *fmt, ...) {
 	FILE *fp = fopen(LOG_PATH, "a+");
@@ -46,7 +46,7 @@ void output(char *fmt, ...) {
 	va_end(args);
 	
 	char logbuf[BUFFER_LENGTH];
-	snprintf(logbuf, BUFFER_LENGTH, "%s: [%10ld:%10ld] %s\n", basename(getProgramName()), 0l, 0l, argbuf);
+	snprintf(logbuf, BUFFER_LENGTH, "%s: [%010ld:%010ld] %s\n", basename(getProgramName()), 0l, 0l, argbuf);
 	
 	fprintf(fp, logbuf);
 	fprintf(stderr, logbuf);
