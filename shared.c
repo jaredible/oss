@@ -35,7 +35,7 @@ void crash(char *msg) {
 	exit(EXIT_FAILURE);
 }
 
-void output(char *fmt, ...) {
+void slog(char *fmt, ...) {
 	FILE *fp = fopen(LOG_PATH, "a+");
 	if (fp == NULL) crash("fopen");
 	
@@ -46,10 +46,10 @@ void output(char *fmt, ...) {
 	va_end(args);
 	
 	char logbuf[BUFFER_LENGTH];
-	snprintf(logbuf, BUFFER_LENGTH, "%s: [%010ld:%010ld] %s\n", basename(getProgramName()), 0l, 0l, argbuf);
+	snprintf(logbuf, BUFFER_LENGTH, "%s: %s\n", basename(getProgramName()), argbuf);
 	
-	fprintf(fp, logbuf);
-	fprintf(stderr, logbuf);
+	//fprintf(fp, logbuf);
+	printf(logbuf);
 	
 	if (fclose(fp) == EOF) crash("fclose");
 }

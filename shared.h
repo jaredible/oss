@@ -7,9 +7,12 @@
 #define BUFFER_LENGTH 1024
 #define EXIT_STATUS_OFFSET 20
 
+#define CLOCK_KEY_ID 0
+#define DESCRIPTOR_KEY_ID 1
+#define QUEUE_KEY_ID 2
 #define PERMS (S_IRUSR | S_IWUSR)
 
-enum ActionType { REQUEST, RELEASE, TERMINATE, GRANT, DENY };
+enum Action { REQUEST, RELEASE, TERMINATE, GRANT, DENY };
 
 typedef struct {
 	long type;
@@ -19,20 +22,10 @@ typedef struct {
 	int sender;
 } Message;
 
-typedef struct {
-	int available;
-	int claim[20];
-	int allocation[20];
-	bool shareable;
-} Descriptor;
-
-typedef struct {
-} PCB;
-
 void init(int, char**);
 char *getProgramName();
 void error(char*, ...);
 void crash(char*);
-void output(char*, ...);
+void slog(char*, ...);
 
 #endif

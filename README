@@ -5,6 +5,13 @@ TODO
 This program simulates managing resources among processes
 in an operating system, and will output its execution.
 
+*----- = create
+-*---- = request
+--*--- = wait
+---*-- = acquire
+----*- = release
+-----* = terminate
+
 ### OSS
 TODO
 
@@ -17,7 +24,7 @@ make
 
 ## Execute
 ./oss -h
-./oss [-v] [-n x] [-s x] [-t time]
+./oss [-v]
 
 ## Issues
 None, to my knowledge.

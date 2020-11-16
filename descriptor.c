@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "descriptor.h"
 
@@ -10,13 +11,12 @@ void initDescriptor(Descriptor *descriptor) {
 	for (i = 0; i < MAX_RESOURCES; i++) {
 		if (rand() % 5 == 0) {
 			descriptor->resource[i] = 5;
-			descriptor->available[i] = descriptor->resource[i];
-			descriptor->shared[i] = 1;
+			descriptor->shared[i] = true;
 		} else {
-			descriptor->resource[i] = rand() % 10 + 1;
-			descriptor->available[i] = descriptor->resource[i];
-			descriptor->shared[i] = 0;
+			descriptor->resource[i] = 1;//rand() % 10 + 1;
+			descriptor->shared[i] = false;
 		}
+		descriptor->available[i] = descriptor->resource[i];
 	}
 }
 
@@ -37,9 +37,15 @@ void printMatrix(char *title, int matrix[][MAX_RESOURCES], int processes, int re
 	for (row = 0; row < processes; row++) {
 		printf("P%-2d ", row);
 		for (col = 0; col < resources; col++) {
-			if (matrix[row][col] == 0) printf("--  ");
-			else printf("%-3d ", matrix[row][col]);
+			printf("%-3d ", matrix[row][col]);
 		}
 		printf("\n");
 	}
+}
+
+void printDescriptor(Descriptor descriptor, int processes, int resources) {
+	printVector("Resource", descriptor.resource, resources);
+	printVector("Available", descriptor.available, resources);
+	printMatrix("Maximum", descriptor.maximum, processes, resources);
+	printMatrix("Allocation", descriptor.allocation, processes, resources);
 }

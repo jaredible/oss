@@ -18,5 +18,9 @@ Time subTime(Time a, Time b) {
 }
 
 int compareTime(Time a, Time b) {
+	unsigned long t1 = a.s * 1e9 + a.ns;
+	unsigned long t2 = b.s * 1e9 + b.ns;
+	if (t1 < t2) return -1;
+	if (t1 > t2) return 1;
 	return 0;
 }

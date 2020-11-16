@@ -1,5 +1,5 @@
 /*
- * queue.h 11/9/20
+ * queue.h 11/17/20
  * Jared Diehl (jmddnb@umsystem.edu)
  */
 
@@ -11,13 +11,13 @@
 typedef struct {
 	unsigned int front, rear, size;
 	unsigned int capacity;
-	unsigned int *array;
+	int *array;
 } Queue;
 
 Queue *queue_create(unsigned int);
-void queue_push(Queue*, unsigned int);
-unsigned int queue_pop(Queue*);
-unsigned int queue_peek(Queue*);
+void queue_push(Queue*, int);
+int queue_pop(Queue*);
+int queue_peek(Queue*);
 bool queue_full(Queue*);
 bool queue_empty(Queue*);
 void queue_display(Queue*);
