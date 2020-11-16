@@ -11,14 +11,16 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "oss.h"
 #include "shared.h"
 #include "time.h"
 #include "user.h"
 
-#define TERMINATION_CHANCE 50
-#define REQUEST_CHANCE 60
+#define TERMINATION_CHANCE 80
+#define REQUEST_CHANCE 20
 
 Time *getClockTime();
+ResourceDescriptor *getResourceDescriptor();
 int sendRequest(int, int, int);
 int sendRelease(int, int, int);
 void sendTerminate(int, int);
@@ -48,8 +50,15 @@ int main(int argc, char **argv) {
 	clock = getClockTime();
 	arrival = *clock;
 	
-	srand(time(NULL) ^ (pid << 16));
+//	ResourceDescriptor *rd = getResourceDescriptor();
+//	int j;
+//	for (j = 0; j < MAX_RESOURCES; j++) {
+//		//resources[j] += rd->maximumMatrix[spid][j];
+//		//resourceCount += resources[j];
+//	}
 	
+	srand(spid);//time(NULL) ^ (pid << 16));
+//	int i;
 	while (true) {
 		duration = subTime(*clock, arrival);
 		
@@ -61,36 +70,57 @@ int main(int argc, char **argv) {
 		}
 		
 		if (((rand() % 100) + 1) < REQUEST_CHANCE) {
-			rid = rand() % 20;
+			if (resources[rid] >= 1) continue;
+			rid = 1;//rand() % 20;
+//			fprintf(stderr, "[request] p%d r%d    ", spid, rid);
+//			fflush(stderr);
+//			for (i = 0; i < 20; i++)
+//				printf("%-2d ", resources[i]);
+//			printf("\n");
 			response = sendRequest(rid, pid, spid);
 			if (response == GRANT) {
-				resources[rid]++;
-				resourceCount++;
+				resources[rid] += 1;
+				resourceCount += 1;
 			} else if (response == DENY) {
 				onWait(pid);
-				resources[rid]++;
-				resourceCount++;
+				resources[rid] += 1;
+				resourceCount += 1;
 			} else {
-				crash("TEST");
+				printf("HERE\n");//crash("TEST");
 			}
+//			fprintf(stderr, "granted p%d r%d    ", spid, rid);
+//			for (i = 0; i < 20; i++)
+//				printf("%-2d ", resources[i]);
+//			printf("\n");
 		} else if (resourceCount > 0) {
 			int i;
-			for (i = 0; i < 20; i++) {
+			for (i = 0; i < MAX_RESOURCES; i++) {
 				if (resources[i] > 0) {
 					rid = i;
 					break;
 				}
 			}
 			
+//			fprintf(stderr, "\n[before release] p%d r%d\n", spid, rid);
+//			for (i = 0; i < MAX_RESOURCES; i++)
+//				fprintf(stderr, "%-2d ", resources[i]);
+//			fprintf(stderr, "\n");
+			
 			response = sendRelease(rid, pid, spid);
 			
 			if (response == GRANT) {
-				resources[rid]--;
-				resourceCount--;
+				resources[rid] -= 1;
+				resourceCount -= 1;
 			}
+			
+//			fprintf(stderr, "[after release] p%d r%d\n", spid, rid);
+//			for (i = 0; i < MAX_RESOURCES; i++)
+//				fprintf(stderr, "%-2d ", resources[i]);
+//			fprintf(stderr, "\n\n");
 		}
 	}
 	
+	printf("p%d exiting\n", spid);
 	return EXIT_STATUS_OFFSET + spid;
 }
 
@@ -104,8 +134,17 @@ Time *getClockTime() {
 	return time;
 }
 
+ResourceDescriptor *getResourceDescriptor() {
+	key_t key = ftok(".", 2);
+	if (key < 0) crash("ftok");
+	int shmid = shmget(key, sizeof(ResourceDescriptor), 0);
+	if (shmid < 0) crash("shmget");
+	ResourceDescriptor *rd = (ResourceDescriptor*) shmat(shmid, NULL, 0);
+	if (rd < 0) crash("shmat");
+	return rd;
+}
+
 int sendRequest(int rid, int pid, int spid) {
-//	printf("[request] rid: %d, pid: %d, spid: %d\n", rid, pid, spid);
 	Message msg = { .type = 1, .action = REQUEST, .rid = rid, .pid = spid, .sender = pid };
 	if (msgsnd(msqid, &msg, sizeof(Message), 0) == -1) crash("msgsnd");
 	if (msgrcv(msqid, &msg, sizeof(Message), pid, 0) == -1) crash("msgrcv");
@@ -113,7 +152,6 @@ int sendRequest(int rid, int pid, int spid) {
 }
 
 int sendRelease(int rid, int pid, int spid) {
-//	printf("[release] rid: %d, pid: %d, spid: %d\n", rid, pid, spid);
 	Message msg = { .type = 1, .action = RELEASE, .rid = rid, .pid = spid, .sender = pid };
 	if (msgsnd(msqid, &msg, sizeof(Message), 0) == -1) crash("msgsnd");
 	if (msgrcv(msqid, &msg, sizeof(Message), pid, 0) == -1) crash("msgsnd");
@@ -129,4 +167,5 @@ void sendTerminate(int pid, int spid) {
 void onWait(int pid) {
 	Message msg;
 	if (msgrcv(msqid, &msg, sizeof(Message), pid, 0) == -1) crash("msgrcv");
+	printf("p%d waked\n", pid);
 }

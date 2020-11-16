@@ -17,24 +17,16 @@
 
 #define OPTIONS "hvn:s:t:"
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-#define BIT_SET(a, b) ((a) |= (1ULL << (b)))
-#define BIT_CLEAR(a, b) ((a) &= ~(1ULL << (b)))
-#define BIT_FLIP(a, b) ((a) ^= (1ULL << (b)))
-#define BIT_CHECK(a, b) (!!((a) & (1ULL << (b))))
-
 #define MAX_PROCESSES 18
 #define MAX_RESOURCES 20
 
-typedef unsigned long int bitvector;
-
 typedef struct {
 	int requestMatrix[MAX_PROCESSES][MAX_RESOURCES];
+	int maximumMatrix[MAX_PROCESSES][MAX_RESOURCES];
 	int allocationMatrix[MAX_PROCESSES][MAX_RESOURCES];
 	int resourceVector[MAX_RESOURCES];
-	int allocationVector[MAX_RESOURCES];
+	int availableVector[MAX_RESOURCES];
+	int sharedResourceVector[MAX_RESOURCES];
 } ResourceDescriptor;
 
 /* Program setup */

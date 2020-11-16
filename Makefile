@@ -3,11 +3,11 @@ CFLAGS		= -Wall -g
 
 OSS		= oss
 OSS_SRC		= oss.c
-OSS_OBJ		= $(OSS_SRC:.c=.o) shared.o time.o
+OSS_OBJ		= $(OSS_SRC:.c=.o) descriptor.o queue.o shared.o time.o
 
 USER		= user
 USER_SRC	= user.c
-USER_OBJ	= $(USER_SRC:.c=.o) shared.o time.o
+USER_OBJ	= $(USER_SRC:.c=.o) descriptor.o shared.o time.o
 
 OUTPUT		= $(OSS) $(USER)
 
