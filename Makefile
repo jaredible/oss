@@ -1,28 +1,37 @@
-CC		= gcc
-CFLAGS		= -Wall -g
+SRC_DIR := src
+OBJ_DIR := obj
+BIN_DIR := bin
 
-OSS		= oss
-OSS_SRC		= oss.c
-OSS_OBJ		= $(OSS_SRC:.c=.o) oss.h descriptor.o queue.o shared.o time.o
+EXE1 := $(BIN_DIR)/oss
+EXE2 := $(BIN_DIR)/user
+FIL1 := $(OBJ_DIR)/user.o
+FIL2 := $(OBJ_DIR)/oss.o
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-USER		= user
-USER_SRC	= user.c
-USER_OBJ	= $(USER_SRC:.c=.o) user.h descriptor.o shared.o time.o
+CC := gcc --std=c99 -D_XOPEN_SOURCE
+CFLAGS := -Iinclude -MMD -MP -Wall -g
 
-OUTPUT		= $(OSS) $(USER)
+.PHONY: all clean cleanrun
 
-.PHONY: all clean
+all: $(EXE1) $(EXE2)
 
-all: $(OUTPUT)
+$(EXE1): $(filter-out $(FIL1), $(OBJ)) | $(BIN_DIR)
+	$(CC) $^ -o $@
 
-$(OSS): $(OSS_OBJ)
-	$(CC) $(CFLAGS) $(OSS_OBJ) -o $(OSS)
+$(EXE2): $(filter-out $(FIL2), $(OBJ)) | $(BIN_DIR)
+	$(CC) $^ -o $@
 
-$(USER): $(USER_OBJ)
-	$(CC) $(CFLAGS) $(USER_OBJ) -o $(USER)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $*.c -o $*.o
+$(BIN_DIR) $(OBJ_DIR):
+	mkdir -p $@
 
 clean:
-	/bin/rm -f $(OUTPUT) *.o *.log
+	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR)
+
+cleanrun:
+	@$(RM) -rv $(BIN_DIR)/*.out $(BIN_DIR)/*.log
+
+-include $(OBJ:.o=.d)

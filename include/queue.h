@@ -12,14 +12,14 @@ typedef struct {
 	unsigned int front, rear, size;
 	unsigned int capacity;
 	int *array;
-} Queue;
+} queue_t;
 
-Queue *queue_create(unsigned int);
-void queue_push(Queue*, int);
-int queue_pop(Queue*);
-int queue_peek(Queue*);
-bool queue_full(Queue*);
-bool queue_empty(Queue*);
-void queue_display(Queue*);
+queue_t *queue_create(unsigned int);
+void queue_push(queue_t*, int);
+int queue_pop(queue_t*);
+int queue_peek(queue_t*);
+bool queue_full(queue_t*);
+bool queue_empty(queue_t*);
+void queue_display(queue_t*);
 
 #endif

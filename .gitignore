@@ -1,9 +1,2 @@
-# Executable files
-oss
-user
-
-# Object files
-*.o
-
-# Log files
-*.log
+bin/
+obj/
