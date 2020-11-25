@@ -161,7 +161,7 @@ void initDescriptor() {
 
 	/* Assign initial resources */
 	for (i = 0; i < RESOURCES_MAX; i++)
-		descriptor.resource[i] = rand() % 10 + 1;
+		descriptor.resource[i] = (rand() % 10) + 1;
 
 	/* Set shared resources */
 	descriptor.shared = (SHARED_RESOURCES_MAX == 0) ? 0 : rand() % (SHARED_RESOURCES_MAX - (SHARED_RESOURCES_MAX - SHARED_RESOURCES_MIN)) + SHARED_RESOURCES_MIN;
@@ -233,7 +233,10 @@ void handleProcesses() {
 		/* Check if user process has requested resources */
 		if (message.request) {
 			log("%s: [%d.%d] p%d -*--\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
-
+			printf("spid: %d\n", spid);
+			printVector("Req", system->ptable[spid].request);
+			printVector("Alloc", system->ptable[spid].allocation);
+			printVector("Max", system->ptable[spid].maximum);
 			/* Respond back whether their request is safe or not */
 			message.type = system->ptable[spid].pid;
 			message.safe = safe(queue, spid);
@@ -243,7 +246,10 @@ void handleProcesses() {
 		advanceClock();
 
 		/* Check if user process has released resources */
-		if (message.release) log("%s: [%d.%d] p%d --*-\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
+		if (message.release) {
+			log("%s: [%d.%d] p%d --*-\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
+			printVector("Rel", system->ptable[spid].release);
+		}
 		
 		/* On to the next user process to simulate */
 		count++;
@@ -299,6 +305,8 @@ void spawnProcess(int spid) {
 
 void initPCB(pid_t pid, int spid) {
 	int i;
+	
+//	printf("Initializing PCB of process %d (%d)\n", spid, pid);
 
 	/* Set default values in a user process' data structure */
 	PCB *pcb = &system->ptable[spid];
@@ -310,6 +318,11 @@ void initPCB(pid_t pid, int spid) {
 		pcb->request[i] = 0;
 		pcb->release[i] = 0;
 	}
+	
+//	printVector("Maximum\n", pcb->maximum);
+//	printVector("Alloction\n", pcb->allocation);
+//	printVector("Request\n", pcb->request);
+//	printVector("Release\n", pcb->release);
 }
 
 /* Returns values [0-PROCESSES_MAX] for a found available PID, otherwise -1 for not found */
@@ -357,47 +370,51 @@ bool safe(Queue *queue, int index) {
 		}
 		next = (next->next != NULL) ? next->next : NULL;
 	}
-
+	
 	/* Calculate needed resources */
 	for (i = 0; i < count; i++)
 		for (j = 0; j < RESOURCES_MAX; j++)
 			need[i][j] = max[i][j] - alloc[i][j];
-
+	
 	for (i = 0; i < RESOURCES_MAX; i++) {
 		avail[i] = descriptor.resource[i];
 		req[i] = system->ptable[index].request[i];
 	}
-
+	
 	for (i = 0; i < count; i++)
 		for (j = 0; j < RESOURCES_MAX; j++)
 			avail[j] = avail[j] - alloc[i][j];
+	
+	if (verbose) {
+		char buf[BUFFER_LENGTH];
+		sprintf(buf, "Request p%-2d", index);
+		printVector(buf, req);
+		printMatrix("Allocation", queue, alloc, count);
+		printMatrix("Maximum", queue, max, count);
+		printMatrix("Need", queue, need, count);
+	}
 
+	bool finish[count];
+	int sequence[count];
+	
+	for (i = 0; i < count; i++)
+		finish[i] = false;
+
+	int work[RESOURCES_MAX];
+	for (i = 0; i < RESOURCES_MAX; i++)
+		work[i] = avail[i];
+	
+	i = 0;
 	next = queue->front;
 	while (next != NULL) {
 		if (next->index == index) break;
 		i++;
 		next = (next->next != NULL) ? next->next : NULL;
 	}
-
-	if (verbose) {
-		printMatrix("Maximum", queue, max, count);
-		printMatrix("Allocation", queue, alloc, count);
-		char buf[BUFFER_LENGTH];
-		sprintf(buf, "Request p%-2d", index);
-		printVector(buf, req);
-	}
-
-	bool finish[count];
-	int sequence[count];
-	memset(finish, 0, count * sizeof(finish[0]));
-
-	int work[RESOURCES_MAX];
-	for (i = 0; i < RESOURCES_MAX; i++)
-		work[i] = avail[i];
-
+	
 	/* Perform resource request algorithm */
 	for (j = 0; j < RESOURCES_MAX; j++) {
-		if (need[i][j] < req[j] && j < descriptor.shared) {
+		if (need[i][j] < req[j]) {// && j < descriptor.shared) {
 			log("\tAsked for more than initial max request\n");
 
 			if (verbose) {
@@ -408,7 +425,7 @@ bool safe(Queue *queue, int index) {
 			return false;
 		}
 
-		if (req[j] <= avail[j] && j < descriptor.shared) {
+		if (req[j] <= avail[j]) {// && j < descriptor.shared) {
 			avail[j] -= req[j];
 			alloc[i][j] += req[j];
 			need[i][j] -= req[j];
@@ -423,28 +440,30 @@ bool safe(Queue *queue, int index) {
 			return false;
 		}
 	}
+	
+//	printf("count: %d\n", count);
 
 	/* Execute Banker's Algorithm */
 	i = 0;
-	while (index < count) {
+	while (i < count) {
 		bool found = false;
 		for (p = 0; p < count; p++) {
-			if (finish[p] == 0) {
+			if (!finish[p]) {
 				for (j = 0; j < RESOURCES_MAX; j++)
-					if (need[p][j] > work[j] && descriptor.shared) break;
+					if (need[p][j] > work[j]) break;// && descriptor.shared) break;
 
 				if (j == RESOURCES_MAX) {
 					for (k = 0; k < RESOURCES_MAX; k++)
 						work[k] += alloc[p][k];
 
 					sequence[i++] = p;
-					finish[p] = 1;
+					finish[p] = true;
 					found = true;
 				}
 			}
 		}
 
-		if (found == false) {
+		if (!found) {
 			log("System is in UNSAFE state\n");
 			return false;
 		}
@@ -505,19 +524,23 @@ void registerSignalHandlers() {
 	/* Initialize timout timer */
 	timer(TIMEOUT);
 
+	signal(SIGUSR1, SIG_IGN);
 	signal(SIGSEGV, signalHandler);
+	signal(SIGABRT, signalHandler);
 }
 
 void signalHandler(int sig) {
 	if (sig == SIGALRM) quit = true;
 	else {
+		printf("%d\n", sig);
 		printSummary();
 
 		/* Kill all running user processes */
-		int i;
-		for (i = 0; i < PROCESSES_MAX; i++)
-			if (pids[i] > 0) kill(pids[i], SIGTERM);
-		while (wait(NULL) > 0);
+//		int i;
+//		for (i = 0; i < PROCESSES_MAX; i++)
+//			if (pids[i] > 0) kill(pids[i], SIGTERM);
+		kill(0, SIGUSR1);
+		while (waitpid(-1, NULL, WNOHANG) > 0);
 
 		freeIPC();
 		exit(EXIT_SUCCESS);
@@ -589,7 +612,7 @@ void log(char *fmt, ...) {
 	vsnprintf(buf, BUFFER_LENGTH, fmt, args);
 	va_end(args);
 
-	fprintf(stderr, buf);
+	fprintf(stdout, buf);
 	fprintf(fp, buf);
 
 	if (fclose(fp) == EOF) crash("fclose");
@@ -607,7 +630,7 @@ void semUnlock(const int index) {
 
 void printDescriptor() {
 	printVector("Total", descriptor.resource);
-	log("Shareable resources: %d\n", descriptor.shared);
+//	log("Shareable resources: %d\n", descriptor.shared);
 }
 
 void printVector(char *title, int vector[RESOURCES_MAX]) {

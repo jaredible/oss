@@ -25,6 +25,7 @@
 #include "shared.h"
 
 void init(int, char**);
+void signalHandler(int);
 void initIPC();
 void crash(char*);
 
@@ -36,12 +37,20 @@ static int msqid = -1;
 static System *system = NULL;
 static Message message;
 
+static int spid;
+
 int main(int argc, char **argv) {
 	init(argc, argv);
+	
+	signal(SIGINT, signalHandler);
+	signal(SIGTERM, signalHandler);
+	signal(SIGQUIT, signalHandler);
+	signal(SIGUSR1, signalHandler);
+	signal(SIGABRT, signalHandler);
 
-	int spid = atoi(argv[1]);
+	spid = atoi(argv[1]);
 
-	srand(time(NULL) ^ getpid());
+	srand(time(NULL) ^ (getpid() << 16));
 
 	initIPC();
 
@@ -75,7 +84,7 @@ int main(int argc, char **argv) {
 		if (!started || !old) choice = rand() % 2 + 0;
 		else choice = rand() % 3 + 0;
 
-		/* Make a decision (i.e., terminate, request, or release) */
+		/* Make a decision (i.e., request, release, or terminate) */
 		switch (choice) {
 			case 0:
 				started = true;
@@ -89,7 +98,7 @@ int main(int argc, char **argv) {
 				if (acquired) {
 					for (i = 0; i < RESOURCES_MAX; i++)
 						system->ptable[spid].release[i] = system->ptable[spid].allocation[i];
-					terminating = true;
+					releasing = true;
 				}
 				break;
 			case 2:
@@ -140,6 +149,11 @@ void init(int argc, char **argv) {
 
 	setvbuf(stdout, NULL, _IONBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);
+}
+
+void signalHandler(int sig) {
+	printf("Terminating %d (%d)\n", spid, getpid());
+	exit(EXIT_FAILURE);
 }
 
 void initIPC() {
