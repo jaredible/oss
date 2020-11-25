@@ -63,4 +63,16 @@ typedef struct {
 	PCB ptable[PROCESSES_MAX];
 } System;
 
+void printDebug(System *system) {
+	int i, j;
+	printf("Debug\n");
+	for (i = 0; i < PROCESSES_MAX; i++) {
+		printf("p%-2d ", i);
+		for (j = 0; j < RESOURCES_MAX; j++) {
+			printf("%d ", system->ptable[i].allocation[j]);
+		}
+		printf("\n");
+	}
+}
+
 #endif

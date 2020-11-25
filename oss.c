@@ -197,7 +197,7 @@ void simulate() {
 
 /* Sends and receives messages from user processes, and acts upon them */
 void handleProcesses() {
-	int i, count = 0;
+	int count = 0;
 	QueueNode *next = queue->front;
 	
 	/* While we have user processes to simulate */
@@ -223,6 +223,7 @@ void handleProcesses() {
 			/* Remove user process from queue */
 			queue_remove(queue, spid);
 			next = queue->front;
+			int i;
 			for (i = 0; i < count; i++)
 				next = (next->next != NULL) ? next->next : NULL;
 
@@ -233,10 +234,9 @@ void handleProcesses() {
 		/* Check if user process has requested resources */
 		if (message.request) {
 			log("%s: [%d.%d] p%d -*--\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
-			printf("spid: %d\n", spid);
-			printVector("Req", system->ptable[spid].request);
-			printVector("Alloc", system->ptable[spid].allocation);
-			printVector("Max", system->ptable[spid].maximum);
+			printVector("Request", system->ptable[spid].request);
+			printVector("Allocation", system->ptable[spid].allocation);
+			printVector("Maximum", system->ptable[spid].maximum);
 			/* Respond back whether their request is safe or not */
 			message.type = system->ptable[spid].pid;
 			message.safe = safe(queue, spid);
@@ -248,12 +248,15 @@ void handleProcesses() {
 		/* Check if user process has released resources */
 		if (message.release) {
 			log("%s: [%d.%d] p%d --*-\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
-			printVector("Rel", system->ptable[spid].release);
+//			printVector("Rel", system->ptable[spid].release);
 		}
 		
 		/* On to the next user process to simulate */
 		count++;
 		next = (next->next != NULL) ? next->next : NULL;
+		
+		printf("p%d\n", spid);
+		printDebug(system);
 	}
 }
 
@@ -306,7 +309,7 @@ void spawnProcess(int spid) {
 void initPCB(pid_t pid, int spid) {
 	int i;
 	
-//	printf("Initializing PCB of process %d (%d)\n", spid, pid);
+	printf("Initializing PCB of process %d (%d)\n", spid, pid);
 
 	/* Set default values in a user process' data structure */
 	PCB *pcb = &system->ptable[spid];
@@ -319,10 +322,10 @@ void initPCB(pid_t pid, int spid) {
 		pcb->release[i] = 0;
 	}
 	
-//	printVector("Maximum\n", pcb->maximum);
-//	printVector("Alloction\n", pcb->allocation);
-//	printVector("Request\n", pcb->request);
-//	printVector("Release\n", pcb->release);
+	printVector("Maximum\n", pcb->maximum);
+	printVector("Alloction\n", pcb->allocation);
+	printVector("Request\n", pcb->request);
+	printVector("Release\n", pcb->release);
 }
 
 /* Returns values [0-PROCESSES_MAX] for a found available PID, otherwise -1 for not found */

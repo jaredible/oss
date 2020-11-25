@@ -105,6 +105,20 @@ int main(int argc, char **argv) {
 				terminating = true;
 				break;
 		}
+		
+//		if (requesting) {
+//			printf("p%d requesting resources\n", spid);
+//			for (i = 0; i < RESOURCES_MAX; i++)
+//				printf("%d ", system->ptable[spid].request[i]);
+//			printf("\n");
+//		}
+		
+//		if (releasing) {
+//			printf("p%d releasing resources\n", spid);
+//			for (i = 0; i < RESOURCES_MAX; i++)
+//				printf("%d ", system->ptable[spid].release[i]);
+//			printf("\n");
+//		}
 
 		/* Send that decision to OSS */
 		message.type = 1;
@@ -139,6 +153,16 @@ int main(int argc, char **argv) {
 				acquired = false;
 			}
 		}
+		
+//		printf("Process %d\n", spid);
+//		printf("Maximum\n");
+//		for (i = 0; i < RESOURCES_MAX; i++)
+//			printf("%d ", system->ptable[spid].maximum[i]);
+//		printf("\n");
+//		printf("Allocation\n");
+//		for (i = 0; i < RESOURCES_MAX; i++)
+//			printf("%d ", system->ptable[spid].allocation[i]);
+//		printf("\n");
 	}
 	
 	return spid;
