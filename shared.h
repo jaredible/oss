@@ -15,20 +15,18 @@
 #define BUFFER_LENGTH 1024
 
 #define KEY_PATHNAME "."
-#define KEY_ID_CLOCK 0
-#define KEY_ID_RESOURCE_DESCRIPTOR 1
-#define KEY_ID_MESSAGE_QUEUE 2
+#define KEY_ID_SYSTEM 0
+#define KEY_ID_MESSAGE_QUEUE 1
+#define KEY_ID_SEMAPHORE 2
 #define PERMS (S_IRUSR | S_IWUSR)
 
-#define PATH_LOG "./output.log"
+#define PATH_LOG "output.log"
 #define TIMEOUT 5
 #define PROCESSES_MAX 18
 #define PROCESSES_TOTAL 40
 #define RESOURCES_MAX 20
 #define SHARED_RESOURCES_MIN (int) (RESOURCES_MAX * 0.15)
 #define SHARED_RESOURCES_MAX (int) (RESOURCES_MAX * 0.25)
-
-enum ActionType { TERMINATE, REQUEST, RELEASE };
 
 typedef struct {
 	unsigned int s;
