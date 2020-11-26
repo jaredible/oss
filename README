@@ -51,3 +51,92 @@ make clean
 
 #### Changelog
 
+commit e55692998aea6b3c7575713c3470e5e97b6f7c98
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Thu Nov 26 08:41:29 2020 -0600
+
+    Updated README
+
+commit 5f4c6a2de83a2f526b9371306c6f79fb30d4f843
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Thu Nov 26 08:39:56 2020 -0600
+
+    Fixed allocation bugs
+
+commit 2925d776c2e5af670f108d7821fcf5dca9ec3a15
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Nov 25 16:28:38 2020 -0600
+
+    Found more allocation bugs
+
+commit a2a26a3acaab51c2088d4711a98d6cfc68b8a74d
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Nov 25 14:32:09 2020 -0600
+
+    Fixed allocation bug
+
+commit 28e1b5f25f857c98e7bde674256c9f9bc8c01ec7
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Tue Nov 24 19:38:50 2020 -0600
+
+    Updated something
+
+commit b37a012afcc2d7b73ee89e2bd4c93a1f4de9f66a
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Mon Nov 23 10:54:06 2020 -0600
+
+    Updated again
+
+commit 7fd19a0b3e932693b0454ce81a867ede0da7c629
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 22 13:27:04 2020 -0600
+
+    Updated
+
+commit a5476fa931cc5b4ae1676e87d108891eac0bb318
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Tue Nov 17 10:28:53 2020 -0600
+
+    Saving progress
+
+commit 52d0f295b96823ea0ad0edd732eef77b0bb26151
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Tue Nov 17 02:04:12 2020 -0600
+
+    Updated README
+
+commit bb56549626d1b0fb2573f9638731d6ce60ea5c26
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Mon Nov 16 15:23:12 2020 -0600
+
+    Deadlock bug
+
+commit ab69ec97c328b7afa43bfecfa61bcf073e817396
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 15 18:33:23 2020 -0600
+
+    Fixed resource-requesting bugs
+
+commit fa54704a918c43a94abdfd4eb6d725c3b49a1c24
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sat Nov 14 15:40:15 2020 -0600
+
+    Implemented resource-requests
+
+commit 7e959069051ad3302a20d4cc4019f1888861f12d
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Nov 13 13:52:41 2020 -0600
+
+    Implemented process-requesting
+
+commit c22bdf8a15e5ecb4138ade7cae7eb00dc6df11d1
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Thu Nov 12 09:58:57 2020 -0600
+
+    Updated README
+
+commit e9ddc8b71affc00f2e77ae500709af30cf125f49
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Nov 4 14:14:53 2020 -0600
+
+    Initial setup
