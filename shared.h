@@ -12,6 +12,8 @@
 
 #define system _system
 
+#define DEBUG false
+
 #define BUFFER_LENGTH 1024
 
 #define KEY_PATHNAME "."
@@ -28,6 +30,8 @@
 #define SHARED_RESOURCES_MIN (int) (RESOURCES_MAX * 0.15)
 #define SHARED_RESOURCES_MAX (int) (RESOURCES_MAX * 0.25)
 
+enum ActionType { REQUEST, RELEASE, TERMINATE };
+
 typedef struct {
 	unsigned int s;
 	unsigned int ns;
@@ -37,16 +41,14 @@ typedef struct {
 	long type;
 	pid_t pid;
 	int spid;
-	bool terminate;
-	bool request;
-	bool release;
-	bool safe;
-	char text[BUFFER_LENGTH];
+	int action;
+	int request[RESOURCES_MAX];
+	bool acquired;
 } Message;
 
 typedef struct {
 	int resource[RESOURCES_MAX];
-	int shared;
+	int shared[RESOURCES_MAX];
 } ResourceDescriptor;
 
 typedef struct {
@@ -54,25 +56,11 @@ typedef struct {
 	int spid;
 	int maximum[RESOURCES_MAX];
 	int allocation[RESOURCES_MAX];
-	int request[RESOURCES_MAX];
-	int release[RESOURCES_MAX];
 } PCB;
 
 typedef struct {
 	Time clock;
 	PCB ptable[PROCESSES_MAX];
 } System;
-
-void printDebug(System *system) {
-	int i, j;
-	printf("Debug\n");
-	for (i = 0; i < PROCESSES_MAX; i++) {
-		printf("p%-2d ", i);
-		for (j = 0; j < RESOURCES_MAX; j++) {
-			printf("%d ", system->ptable[i].allocation[j]);
-		}
-		printf("\n");
-	}
-}
 
 #endif

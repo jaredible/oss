@@ -38,7 +38,7 @@ void spawnProcess(int);
 void initPCB(pid_t, int);
 int findAvailablePID();
 void advanceClock();
-bool safe(Queue*, int);
+bool safe(Queue*, int, int[RESOURCES_MAX]);
 
 /* Program lifecycle functions */
 void init(int, char**);
@@ -133,7 +133,6 @@ int main(int argc, char **argv) {
 	initSystem();
 	queue = queue_create();
 	initDescriptor();
-	printDescriptor();
 
 	/* Start simulating */
 	simulate();
@@ -157,14 +156,23 @@ void initSystem() {
 }
 
 void initDescriptor() {
-	int i;
+	int i, j;
 
 	/* Assign initial resources */
 	for (i = 0; i < RESOURCES_MAX; i++)
 		descriptor.resource[i] = (rand() % 10) + 1;
 
 	/* Set shared resources */
-	descriptor.shared = (SHARED_RESOURCES_MAX == 0) ? 0 : rand() % (SHARED_RESOURCES_MAX - (SHARED_RESOURCES_MAX - SHARED_RESOURCES_MIN)) + SHARED_RESOURCES_MIN;
+	int shared = (SHARED_RESOURCES_MAX == 0) ? 0 : rand() % (SHARED_RESOURCES_MAX - (SHARED_RESOURCES_MAX - SHARED_RESOURCES_MIN)) + SHARED_RESOURCES_MIN;
+	for (i = 0; i < shared; i++) {
+		while (true) {
+			j = rand() % RESOURCES_MAX;
+			if (!descriptor.shared[j]) {
+				descriptor.shared[j] = true;
+				break;
+			}
+		}
+	}
 }
 
 /* Simulation driver */
@@ -197,7 +205,7 @@ void simulate() {
 
 /* Sends and receives messages from user processes, and acts upon them */
 void handleProcesses() {
-	int count = 0;
+	int i, n, count = 0;
 	QueueNode *next = queue->front;
 	
 	/* While we have user processes to simulate */
@@ -214,49 +222,100 @@ void handleProcesses() {
 		/* Receive a response of what they're doing */
 		msgrcv(msqid, &message, sizeof(Message), 1, 0);
 
-		advanceClock();
-
-		/* Check if user process has terminated */
-		if (message.terminate) {
-			log("%s: [%d.%d] p%d ---*\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
-
-			/* Remove user process from queue */
-			queue_remove(queue, spid);
-			next = queue->front;
-			int i;
-			for (i = 0; i < count; i++)
-				next = (next->next != NULL) ? next->next : NULL;
-
-			/* Move on to the next user process */
-			continue;
+		switch (message.action) {
+			case TERMINATE:
+				log("%s: [%d.%d] Process P%d terminated\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
+				
+				/* Release user process' resources */
+				log("\tResources released: ");
+				n = 0;
+				for (i = 0; i < RESOURCES_MAX; i++)
+					if (system->ptable[spid].allocation[i] > 0) n++;
+				if (n > 0) {
+					for (i = 0; i < RESOURCES_MAX; i++) {
+						if (system->ptable[spid].allocation[i] > 0) {
+							log("R%d:%d", i, system->ptable[spid].allocation[i]);
+							if (i < RESOURCES_MAX - 1) log(", ");
+						}
+						system->ptable[spid].maximum[i] = 0;
+						system->ptable[spid].allocation[i] = 0;
+					}
+					log("\n");
+				} else {
+					log("none\n");
+				}
+				
+				/* Remove user process from queue */
+				queue_remove(queue, spid);
+				next = queue->front;
+				for (i = 0; i < count; i++)
+					next = (next->next != NULL) ? next->next : NULL;
+				
+				break;
+			case REQUEST:
+				log("%s: [%d.%d] Process P%d requesting resources\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
+				
+				log("\tResources requested: ");
+				for (i = 0; i < RESOURCES_MAX; i++) {
+					if (message.request[i] > 0) {
+						log("R%d:%d", i, message.request[i]);
+						if (i < RESOURCES_MAX - 1) log(", ");
+					}
+				}
+				log("\n");
+				
+				bool isSafe = safe(queue, spid, message.request);
+				if (isSafe) {
+					n = 0;
+					for (i = 0; i < RESOURCES_MAX; i++)
+						if (message.request[i] > 0) n++;
+					
+					for (i = 0; i < RESOURCES_MAX; i++) {
+						system->ptable[spid].allocation[i] += message.request[i];
+						message.request[i] = 0;
+					}
+					message.acquired = n > 0;
+					log("Process P%d granted resources\n", message.spid);
+				} else {
+					message.acquired = false;
+					log("Process P%d denied resources\n", message.spid);
+				}
+				
+				message.type = system->ptable[spid].pid;
+				msgsnd(msqid, &message, sizeof(Message), 0);
+				
+				break;
+			case RELEASE:
+				log("%s: [%d.%d] Process P%d releasing resources\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
+				
+				log("\tResources released: ");
+				n = 0;
+				for (i = 0; i < RESOURCES_MAX; i++)
+					if (system->ptable[spid].allocation[i] > 0) n++;
+				if (n > 0) {
+					for (i = 0; i < RESOURCES_MAX; i++) {
+						if (system->ptable[spid].allocation[i] > 0) {
+							log("R%d:%d", i, system->ptable[spid].allocation[i]);
+							if (i < RESOURCES_MAX - 1) log(", ");
+						}
+						system->ptable[spid].allocation[i] = 0;
+					}
+					log("\n");
+				} else {
+					log("none\n");
+				}
+				
+				break;
 		}
-
-		/* Check if user process has requested resources */
-		if (message.request) {
-			log("%s: [%d.%d] p%d -*--\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
-			printVector("Request", system->ptable[spid].request);
-			printVector("Allocation", system->ptable[spid].allocation);
-			printVector("Maximum", system->ptable[spid].maximum);
-			/* Respond back whether their request is safe or not */
-			message.type = system->ptable[spid].pid;
-			message.safe = safe(queue, spid);
-			msgsnd(msqid, &message, sizeof(Message), 0);
-		}
-
-		advanceClock();
-
-		/* Check if user process has released resources */
-		if (message.release) {
-			log("%s: [%d.%d] p%d --*-\n", basename(programName), system->clock.s, system->clock.ns, message.spid);
-//			printVector("Rel", system->ptable[spid].release);
-		}
+		
+		printDescriptor();
+		
+		/* Move on to the next user process */
+		if (message.action == TERMINATE) continue;
 		
 		/* On to the next user process to simulate */
 		count++;
 		next = (next->next != NULL) ? next->next : NULL;
-		
-		printf("p%d\n", spid);
-		printDebug(system);
 	}
 }
 
@@ -265,9 +324,9 @@ void trySpawnProcess() {
 	/* Guard statements checking if we can even attempt to spawn a user process */
 	if (activeCount >= PROCESSES_MAX) return;
 	if (spawnCount >= PROCESSES_TOTAL) return;
-	if (nextSpawn.ns < (rand() % (500 + 1)) * 1000000) return;
+	if (nextSpawn.ns < 100) return;//(rand() % (500 + 1)) * 1000000) return;
 	if (quit) return;
-
+	
 	/* Reset next spawn time */
 	nextSpawn.ns = 0;
 
@@ -303,14 +362,12 @@ void spawnProcess(int spid) {
 	activeCount++;
 	spawnCount++;
 
-	log("%s: [%d.%d] p%d *---\n", basename(programName), system->clock.s, system->clock.ns, spid);
+	log("%s: [%d.%d] Process P%d created\n", basename(programName), system->clock.s, system->clock.ns, spid);
 }
 
 void initPCB(pid_t pid, int spid) {
 	int i;
 	
-	printf("Initializing PCB of process %d (%d)\n", spid, pid);
-
 	/* Set default values in a user process' data structure */
 	PCB *pcb = &system->ptable[spid];
 	pcb->pid = pid;
@@ -318,14 +375,7 @@ void initPCB(pid_t pid, int spid) {
 	for (i = 0; i < RESOURCES_MAX; i++) {
 		pcb->maximum[i] = rand() % (descriptor.resource[i] + 1);
 		pcb->allocation[i] = 0;
-		pcb->request[i] = 0;
-		pcb->release[i] = 0;
 	}
-	
-	printVector("Maximum\n", pcb->maximum);
-	printVector("Alloction\n", pcb->allocation);
-	printVector("Request\n", pcb->request);
-	printVector("Release\n", pcb->release);
 }
 
 /* Returns values [0-PROCESSES_MAX] for a found available PID, otherwise -1 for not found */
@@ -340,18 +390,18 @@ void advanceClock() {
 	semLock(0);
 
 	/* Increment system clock by random nanoseconds */
-	int r = rand() % (1 * 1000000) + 1;
+	int r = rand() % (10 * 1000000) + 1;
 	nextSpawn.ns += r;
 	system->clock.ns += r;
-	while (system->clock.ns >= (1000 * 1000000)) {
+	while (system->clock.ns >= (1000000000)) {
 		system->clock.s++;
-		system->clock.ns -= (1000 * 1000000);
+		system->clock.ns -= (1000000000);
 	}
 
 	semUnlock(0);
 }
 
-bool safe(Queue *queue, int index) {
+bool safe(Queue *queue, int index, int request[RESOURCES_MAX]) {
 	int i, j, k, p;
 
 	QueueNode *next = queue->front;
@@ -381,17 +431,15 @@ bool safe(Queue *queue, int index) {
 	
 	for (i = 0; i < RESOURCES_MAX; i++) {
 		avail[i] = descriptor.resource[i];
-		req[i] = system->ptable[index].request[i];
+		req[i] = request[i];
 	}
 	
 	for (i = 0; i < count; i++)
 		for (j = 0; j < RESOURCES_MAX; j++)
-			avail[j] = avail[j] - alloc[i][j];
+			if (!descriptor.shared[j]) avail[j] = avail[j] - alloc[i][j];
 	
 	if (verbose) {
-		char buf[BUFFER_LENGTH];
-		sprintf(buf, "Request p%-2d", index);
-		printVector(buf, req);
+		printVector("Request", request);
 		printMatrix("Allocation", queue, alloc, count);
 		printMatrix("Maximum", queue, max, count);
 		printMatrix("Need", queue, need, count);
@@ -417,8 +465,8 @@ bool safe(Queue *queue, int index) {
 	
 	/* Perform resource request algorithm */
 	for (j = 0; j < RESOURCES_MAX; j++) {
-		if (need[i][j] < req[j]) {// && j < descriptor.shared) {
-			log("\tAsked for more than initial max request\n");
+		if (need[i][j] < req[j]) {
+			log("%s: [%d.%d] Asked for more than initial max request\n", basename(programName), system->clock.s, system->clock.ns);
 
 			if (verbose) {
 				printVector("Available", avail);
@@ -428,13 +476,13 @@ bool safe(Queue *queue, int index) {
 			return false;
 		}
 
-		if (req[j] <= avail[j]) {// && j < descriptor.shared) {
+		if (req[j] <= avail[j]) {
 			avail[j] -= req[j];
 			alloc[i][j] += req[j];
 			need[i][j] -= req[j];
 		} else {
-			log("\tNot enough available resources\n");
-
+			log("%s: [%d.%d] Not enough available resources\n", basename(programName), system->clock.s, system->clock.ns);
+			
 			if (verbose) {
 				printVector("Available", avail);
 				printMatrix("Need", queue, need, count);
@@ -444,8 +492,6 @@ bool safe(Queue *queue, int index) {
 		}
 	}
 	
-//	printf("count: %d\n", count);
-
 	/* Execute Banker's Algorithm */
 	i = 0;
 	while (i < count) {
@@ -453,7 +499,7 @@ bool safe(Queue *queue, int index) {
 		for (p = 0; p < count; p++) {
 			if (!finish[p]) {
 				for (j = 0; j < RESOURCES_MAX; j++)
-					if (need[p][j] > work[j]) break;// && descriptor.shared) break;
+					if (need[p][j] > work[j]) break;
 
 				if (j == RESOURCES_MAX) {
 					for (k = 0; k < RESOURCES_MAX; k++)
@@ -467,7 +513,7 @@ bool safe(Queue *queue, int index) {
 		}
 
 		if (!found) {
-			log("System is in UNSAFE state\n");
+			log("%s [%d.%d] System is in UNSAFE state!\n", basename(programName), system->clock.s, system->clock.ns);
 			return false;
 		}
 	}
@@ -485,10 +531,10 @@ bool safe(Queue *queue, int index) {
 		next = (next->next != NULL) ? next->next : NULL;
 	}
 
-	log("System is in SAFE state. Safe sequence is: ");
+	log("%s [%d.%d] System is in SAFE state. Safe sequence: ", basename(programName), system->clock.s, system->clock.ns);
 	for (i = 0; i < count; i++)
 		log("%2d ", temp[sequence[i]]);
-	log("\n\n");
+	log("\n");
 
 	return true;
 }
@@ -537,14 +583,11 @@ void signalHandler(int sig) {
 	else {
 		printf("%d\n", sig);
 		printSummary();
-
+		
 		/* Kill all running user processes */
-//		int i;
-//		for (i = 0; i < PROCESSES_MAX; i++)
-//			if (pids[i] > 0) kill(pids[i], SIGTERM);
 		kill(0, SIGUSR1);
-		while (waitpid(-1, NULL, WNOHANG) > 0);
-
+		while (wait(NULL) > 0);
+		
 		freeIPC();
 		exit(EXIT_SUCCESS);
 	}
@@ -632,16 +675,47 @@ void semUnlock(const int index) {
 }
 
 void printDescriptor() {
+	int i, j, p;
+	
+	QueueNode *next = queue->front;
+	if (next == NULL) return;
+	
+	int count = queue_size(queue);
+	int max[count][RESOURCES_MAX];
+	int alloc[count][RESOURCES_MAX];
+	int avail[RESOURCES_MAX];
+	
+	for (i = 0; i < count; i++) {
+		p = next->index;
+		for (j = 0; j < RESOURCES_MAX; j++) {
+			max[i][j] = system->ptable[p].maximum[j];
+			alloc[i][j] = system->ptable[p].allocation[j];
+		}
+		next = (next->next != NULL) ? next->next : NULL;
+	}
+	
+	for (i = 0; i < RESOURCES_MAX; i++)
+		avail[i] = descriptor.resource[i];
+	for (i = 0; i < count; i++)
+		for (j = 0; j < RESOURCES_MAX; j++)
+			avail[j] -= alloc[i][j];
+	
 	printVector("Total", descriptor.resource);
-//	log("Shareable resources: %d\n", descriptor.shared);
+	printVector("Shared", descriptor.shared);
+	printVector("Available", avail);
+	printMatrix("Allocation", queue, alloc, count);
+	printMatrix("Maximum", queue, max, count);
 }
 
 void printVector(char *title, int vector[RESOURCES_MAX]) {
-	log("%s\n    ", title);
-
 	int i;
+	
+	log("%s\n     ", title);
+	for (i = 0; i < RESOURCES_MAX; i++)
+		log(" R%-2d", i);
+	log("\n    ");
 	for (i = 0; i < RESOURCES_MAX; i++) {
-		log("%-2d", vector[i]);
+		log(" %2d", vector[i]);
 		if (i < RESOURCES_MAX - 1) log(" ");
 	}
 	log("\n");
@@ -652,12 +726,14 @@ void printMatrix(char *title, Queue *queue, int matrix[][RESOURCES_MAX], int cou
 	next = queue->front;
 
 	int i, j;
-	log("%s\n", title);
-
+	log("%s\n     ", title);
+	for (i = 0; i < RESOURCES_MAX; i++)
+		log(" R%-2d", i);
+	log("\n");
 	for (i = 0; i < count; i++) {
-		log("p%-2d ", next->index);
+		log("P%-2d ", next->index);
 		for (j = 0; j < RESOURCES_MAX; j++) {
-			log("%-2d", matrix[i][j]);
+			log(" %2d", matrix[i][j]);
 			if (j < RESOURCES_MAX - 1) log(" ");
 		}
 		log("\n");

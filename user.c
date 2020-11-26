@@ -25,6 +25,7 @@
 #include "shared.h"
 
 void init(int, char**);
+void registerSignalHandlers();
 void signalHandler(int);
 void initIPC();
 void crash(char*);
@@ -37,132 +38,61 @@ static int msqid = -1;
 static System *system = NULL;
 static Message message;
 
-static int spid;
-
 int main(int argc, char **argv) {
 	init(argc, argv);
 	
-	signal(SIGINT, signalHandler);
-	signal(SIGTERM, signalHandler);
-	signal(SIGQUIT, signalHandler);
-	signal(SIGUSR1, signalHandler);
-	signal(SIGABRT, signalHandler);
-
-	spid = atoi(argv[1]);
-
+	int spid = atoi(argv[1]);
+	
 	srand(time(NULL) ^ (getpid() << 16));
 
 	initIPC();
 
-	bool started = false;
-	bool requesting = false;
-	bool acquired = false;
-	Time arrival;
-	Time duration;
-	arrival.s = system->clock.s;
-	arrival.ns = system->clock.ns;
-	bool old = false;
+	Time start;
+	Time end;
+	bool canTerminate = false;
+	bool hasResources = false;
 	int i;
-
+	
 	/* Decision loop */
 	while (true) {
 		/* Wait until we get a message from OSS telling us it's our turn to "run" */
 		msgrcv(msqid, &message, sizeof(Message), getpid(), 0);
-
-		/* Check if has run for long enough */
-		if (!old) {
-			duration.s = system->clock.s;
-			duration.ns = system->clock.ns;
-			if (abs(duration.ns - arrival.ns) >= 1000 * 1000000) old = true;
-			else if (abs(duration.s - arrival.s) >= 1) old = true;
+		
+		if (!canTerminate) {
+			end.s = system->clock.s;
+			end.ns = system->clock.ns;
+			if (abs(end.ns - start.ns) >= 1000000000) canTerminate = true;
+			else if (abs(end.s - start.s) >= 1) canTerminate = true;
 		}
-
-		bool terminating = false;
-		bool releasing = false;
-		int choice;
-
-		if (!started || !old) choice = rand() % 2 + 0;
-		else choice = rand() % 3 + 0;
-
+		
 		/* Make a decision (i.e., request, release, or terminate) */
+		int choice;
+		do {
+			choice = rand() % 3;
+		} while ((choice == 1 && !hasResources) || (choice == 2 && !canTerminate));
+		
 		switch (choice) {
 			case 0:
-				started = true;
-				if (!requesting) {
-					for (i = 0; i < RESOURCES_MAX; i++)
-						system->ptable[spid].request[i] = rand() % (system->ptable[spid].maximum[i] - system->ptable[spid].allocation[i] + 1);
-					requesting = true;
-				}
+				message.type = 1;
+				message.action = REQUEST;
+				for (i = 0; i < RESOURCES_MAX; i++)
+					message.request[i] = rand() % (system->ptable[spid].maximum[i] - system->ptable[spid].allocation[i] + 1);
+				msgsnd(msqid, &message, sizeof(Message), 0);
+				msgrcv(msqid, &message, sizeof(Message), getpid(), 0);
+				if (message.acquired) hasResources = true;
+				message.acquired = false;
 				break;
 			case 1:
-				if (acquired) {
-					for (i = 0; i < RESOURCES_MAX; i++)
-						system->ptable[spid].release[i] = system->ptable[spid].allocation[i];
-					releasing = true;
-				}
+				message.type = 1;
+				message.action = RELEASE;
+				msgsnd(msqid, &message, sizeof(Message), 0);
 				break;
 			case 2:
-				terminating = true;
-				break;
+				message.type = 1;
+				message.action = TERMINATE;
+				msgsnd(msqid, &message, sizeof(Message), 0);
+				exit(spid);
 		}
-		
-//		if (requesting) {
-//			printf("p%d requesting resources\n", spid);
-//			for (i = 0; i < RESOURCES_MAX; i++)
-//				printf("%d ", system->ptable[spid].request[i]);
-//			printf("\n");
-//		}
-		
-//		if (releasing) {
-//			printf("p%d releasing resources\n", spid);
-//			for (i = 0; i < RESOURCES_MAX; i++)
-//				printf("%d ", system->ptable[spid].release[i]);
-//			printf("\n");
-//		}
-
-		/* Send that decision to OSS */
-		message.type = 1;
-		message.terminate = terminating;
-		message.request = requesting;
-		message.release = releasing;
-		msgsnd(msqid, &message, sizeof(Message), 0);
-
-		/* Act upon that decision */
-		if (terminating) break;
-		else {
-			if (requesting) {
-				/* Wait for OSS to determine if the system is safe or not */
-				msgrcv(msqid, &message, sizeof(Message), getpid(), 0);
-
-				if (message.safe) {
-					for (i = 0; i < RESOURCES_MAX; i++) {
-						system->ptable[spid].allocation[i] += system->ptable[spid].request[i];
-						system->ptable[spid].request[i] = 0;
-					}
-
-					requesting = false;
-					acquired = true;
-				}
-			}
-
-			if (releasing) {
-				for (i = 0; i < RESOURCES_MAX; i++) {
-					system->ptable[spid].allocation[i] -= system->ptable[spid].release[i];
-					system->ptable[spid].release[i] = 0;
-				}
-				acquired = false;
-			}
-		}
-		
-//		printf("Process %d\n", spid);
-//		printf("Maximum\n");
-//		for (i = 0; i < RESOURCES_MAX; i++)
-//			printf("%d ", system->ptable[spid].maximum[i]);
-//		printf("\n");
-//		printf("Allocation\n");
-//		for (i = 0; i < RESOURCES_MAX; i++)
-//			printf("%d ", system->ptable[spid].allocation[i]);
-//		printf("\n");
 	}
 	
 	return spid;
@@ -175,9 +105,14 @@ void init(int argc, char **argv) {
 	setvbuf(stderr, NULL, _IONBF, 0);
 }
 
+void registerSignalHandlers() {
+	signal(SIGUSR1, signalHandler);
+	signal(SIGABRT, signalHandler);
+}
+
 void signalHandler(int sig) {
-	printf("Terminating %d (%d)\n", spid, getpid());
-	exit(EXIT_FAILURE);
+	printf("Terminating %d \n", getpid());
+	exit(2);
 }
 
 void initIPC() {
