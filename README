@@ -26,12 +26,6 @@ If that happens, then press Ctrl+C to exit the program and try rerunning it.
 
 The program will generate a log file called `output.log`. Use the -v (verbose) flag to have more information printed to the console and log file.
 
-Logged events:
-*--- = create
--*-- = request
---*- = release
----* = terminate
-
 To build this program:
 ```
 make
@@ -57,50 +51,3 @@ make clean
 
 #### Changelog
 
-commit a5476fa931cc5b4ae1676e87d108891eac0bb318
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Tue Nov 22 10:28:53 2020 -0600
-
-    Updated README
-
-commit 52d0f295b96823ea0ad0edd732eef77b0bb26151
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Tue Nov 17 02:04:12 2020 -0600
-
-    Fixed shared resources
-
-commit bb56549626d1b0fb2573f9638731d6ce60ea5c26
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Mon Nov 16 15:23:12 2020 -0600
-
-    Implemented shared resources
-
-commit ab69ec97c328b7afa43bfecfa61bcf073e817396
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Sun Nov 15 18:33:23 2020 -0600
-
-    Fixed resource-requesting bugs
-
-commit fa54704a918c43a94abdfd4eb6d725c3b49a1c24
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Sat Nov 14 15:40:15 2020 -0600
-
-    Implemented resource-requests
-
-commit 7e959069051ad3302a20d4cc4019f1888861f12d
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Fri Nov 13 13:52:41 2020 -0600
-
-    Implemented process-requesting
-
-commit c22bdf8a15e5ecb4138ade7cae7eb00dc6df11d1
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Thu Nov 12 09:58:57 2020 -0600
-
-    Updated README
-
-commit e9ddc8b71affc00f2e77ae500709af30cf125f49
-Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
-Date:   Wed Nov 4 14:14:53 2020 -0600
-
-    Initial setup
