@@ -32,11 +32,35 @@ make
 
 ##### CHANGELOG
 
+commit 83b354ce0ccd69778acfa03a4cd7f5aa7626143e
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 15:36:21 2020 -0600
+
+    Updated README
+
+commit 6cbdd1e5d7d34f863f76da9bc49883c9ae18b52f
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 14:45:44 2020 -0600
+
+    Fixed memor map
+
+commit 1962dd135268636c7fbf20ec8fa34a2430e66dc1
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 09:46:38 2020 -0600
+
+    Implemented memory map
+
+commit 4615bfb868706613ea16dcd6373e280932d5e2bb
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 09:21:57 2020 -0600
+
+    Updated README
+
 commit 7e959069051ad3302a20d4cc4019f1888861f12d
 Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
 Date:   Tue Nov 24 23:30:53 2020 -0600
 
-    Updated README
+    Fixed more bugs
 
 commit ab69ec97c328b7afa43bfecfa61bcf073e817396
 Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
