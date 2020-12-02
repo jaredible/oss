@@ -106,9 +106,9 @@ char *list_string(const List *list) {
 	
 	if (next == NULL) return strdup(buf);
 	
-	sprintf(buf, "List: ");
+	sprintf(buf, "List:");
 	while (next != NULL) {
-		sprintf(buf, "%s (%d | %d | %d)\n", buf, next->index, next->page, next->frame);
+		sprintf(buf, "%s (%d | %d | %d)", buf, next->index, next->page, next->frame);
 		next = (next->next != NULL) ? next->next : NULL;
 		if (next != NULL) sprintf(buf, "%s, ", buf);
 	}

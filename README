@@ -1,7 +1,15 @@
 CS4760 Project 6: Memory Management
 
 ##### DESCRIPTION
-Logging of address and page are represented in the following format: #####-##
+This program is designed to demonstrate how memory
+is managed in an operating system. The OS simulator
+will start by initializing IPC resources and determine
+which request scheme to use in the user processes. The
+LRU page replacement algorithm will be used when there is
+full memory. For the request schemes (random or weighted),
+the overall goal is to generate the fewest number of overall
+page faults. For me, during testing, the random request scheme
+had less page faults, which resulted in greater performance.
 
 ##### BUILD
 make
@@ -12,6 +20,8 @@ make
 
 ##### ISSUES
 - Program may pause mid-execution
+- Outputted list
+- Doesn't abort properly sometimes
 
 #### ADJUSTMENTS
 - Memory layout

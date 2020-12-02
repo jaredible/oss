@@ -202,8 +202,6 @@ void handleProcesses() {
 	QueueNode *next = queue->front;
 	Queue *temp = queue_create();
 	
-	flog(list_string(reference));
-
 	/* While we have user processes to simulate */
 	while (next != NULL) {
 		advanceClock(0);
@@ -262,15 +260,17 @@ void handleProcesses() {
 				int frameCount = 0;
 				while (true) {
 					currentFrame = (currentFrame + 1) % MAX_FRAMES;
-					if ((memory[currentFrame / 8] & (1 << (currentFrame % 8))) == 0) {
+					uint32_t frame = memory[currentFrame / 8] & (1 << (currentFrame % 8));
+					if (frame == 0) {
 						isMemoryOpen = true;
 						break;
 					}
-					if (frameCount++ >= MAX_FRAMES - 1) break;
+					if (frameCount >= MAX_FRAMES - 1) break;
+					frameCount++;
 				}
 
 				/* Check if there is still space in memory */
-				if (isMemoryOpen == true) {
+				if (isMemoryOpen) {
 					system->ptable[spid].ptable[requestedPage].frame = currentFrame;
 					system->ptable[spid].ptable[requestedPage].valid = 1;
 
@@ -294,6 +294,7 @@ void handleProcesses() {
 
 					flog("Address %d-%d not in frame, memory is full\n", requestedAddress, requestedPage);
 					
+					//flog("Before LRU algorithm\n");
 					//flog(list_string(reference));
 					//flog(list_string(stack));
 					
@@ -317,6 +318,10 @@ void handleProcesses() {
 					list_remove(reference, index, page, frame);
 					list_add(stack, spid, requestedPage, frame);
 					list_add(reference, spid, requestedPage, frame);
+					
+					flog("After LRU algorithm\n");
+					//flog(list_string(reference));
+					//flog(list_string(stack));
 
 					if (system->ptable[spid].ptable[requestedPage].protection == 1) {
 						system->ptable[spid].ptable[requestedPage].dirty = 1;
