@@ -219,7 +219,7 @@ void handleProcesses() {
 		advanceClock(0);
 
 		if (message.terminate) {
-			flog("p%d terminated\n", message.spid);
+			flog("P%d has terminated, freeing memory\n", spid);
 
 			/* Free process' frames */
 			int i;
@@ -231,23 +231,25 @@ void handleProcesses() {
 				}
 			}
 		} else {
-			int previousFrame;
+			int currentFrame;
 			totalAccessTime += advanceClock(0);
 			queue_push(temp, spid);
+			
+			// Frame allocation procedure
 
 			unsigned int requestedAddress = message.address;
 			unsigned int requestedPage = message.page;
-
+			
 			if (system->ptable[spid].ptable[requestedPage].protection == 0) {
-				flog("p%d requesting address read at %d-%d\n", message.spid, requestedAddress, requestedPage);
+				flog("P%d requesting read of address %d-%d\n", spid, requestedAddress, requestedPage);
 			} else {
-				flog("p%d requesting address write at %d-%d\n", message.spid, requestedAddress, requestedPage);
+				flog("P%d requesting write of address %d-%d\n", spid, requestedAddress, requestedPage);
 			}
 
 			memoryAccessCount++;
 
 			if (system->ptable[spid].ptable[requestedPage].valid == 0) {
-				flog("p%d segfaulted at %d-%d\n", spid, requestedAddress, requestedPage);
+				flog("Address %d-%d not in frame, PAGEFAULT\n", requestedAddress, requestedPage);
 
 				pageFaultCount++;
 
@@ -257,8 +259,8 @@ void handleProcesses() {
 				bool isMemoryOpen = false;
 				int frameCount = 0;
 				while (true) {
-					previousFrame = (previousFrame + 1) % MAX_FRAMES;
-					if ((memory[previousFrame / 8] & (1 << (previousFrame % 8))) == 0) {
+					currentFrame = (currentFrame + 1) % MAX_FRAMES;
+					if ((memory[currentFrame / 8] & (1 << (currentFrame % 8))) == 0) {
 						isMemoryOpen = true;
 						break;
 					}
@@ -267,28 +269,28 @@ void handleProcesses() {
 
 				/* Check if there is still space in memory */
 				if (isMemoryOpen == true) {
-					system->ptable[spid].ptable[requestedPage].frame = previousFrame;
+					system->ptable[spid].ptable[requestedPage].frame = currentFrame;
 					system->ptable[spid].ptable[requestedPage].valid = 1;
 
-					memory[previousFrame / 8] |= (1 << (previousFrame % 8));
+					memory[currentFrame / 8] |= (1 << (currentFrame % 8));
 
-					list_add(reference, spid, requestedPage, previousFrame);
-					flog("p%d allocated frame %d\n", message.spid, previousFrame);
+					list_add(reference, spid, requestedPage, currentFrame);
+					flog("Allocated frame %d to P%d\n", currentFrame, spid);
 
-					list_remove(stack, spid, requestedPage, previousFrame);
-					list_add(stack, spid, requestedPage, previousFrame);
+					list_remove(stack, spid, requestedPage, currentFrame);
+					list_add(stack, spid, requestedPage, currentFrame);
 
 					if (system->ptable[spid].ptable[requestedPage].protection == 0) {
-						flog("p%d given data from frame %d at %d-%d\n", spid, system->ptable[spid].ptable[requestedPage].frame, requestedAddress, requestedPage);
+						flog("Address %d-%d in frame %d, giving data to P%d\n", requestedAddress, requestedPage, system->ptable[spid].ptable[requestedPage].frame, spid);
 						system->ptable[spid].ptable[requestedPage].dirty = 0;
 					} else {
-						flog("p%d writing data to frame %d at %d-%d\n", spid, system->ptable[spid].ptable[requestedPage].frame, requestedAddress, requestedPage);
+						flog("Address %d-%d in frame %d, writing data to P%d\n", requestedAddress, requestedPage, system->ptable[spid].ptable[requestedPage].frame, spid);
 						system->ptable[spid].ptable[requestedPage].dirty = 1;
 					}
 				} else {
 					/* Handle when memory is full */
 
-					flog("%d-%d is not in frame\n", requestedAddress, requestedPage);
+					flog("Address %d-%d not in frame, memory is full\n", requestedAddress, requestedPage);
 
 					unsigned int index = stack->head->index;
 					unsigned int page = stack->head->page;
@@ -296,8 +298,7 @@ void handleProcesses() {
 					unsigned int frame = stack->head->frame;
 
 					if (system->ptable[index].ptable[page].dirty == 1) {
-						/* Modified information is written back to disk */
-						flog("%d-%d modified\n", address, page);
+						flog("Address %d-%d was modified, writing back to disk\n", address, page);
 					}
 
 					/* Page replacement */
@@ -314,18 +315,19 @@ void handleProcesses() {
 
 					if (system->ptable[spid].ptable[requestedPage].protection == 1) {
 						system->ptable[spid].ptable[requestedPage].dirty = 1;
-						flog("frame %d dirty bit set\n", programName, previousFrame);
+						flog("Dirty bit of frame %d set, adding additional time to the clock\n", currentFrame);
 					}
 				}
 			} else {
+				// Update LRU stack
 				int frame = system->ptable[spid].ptable[requestedPage].frame;
 				list_remove(stack, spid, requestedPage, frame);
 				list_add(stack, spid, requestedPage, frame);
 
 				if (system->ptable[spid].ptable[requestedPage].protection == 0) {
-					flog("%d-%d in frame %d, giving data to p%d\n", requestedAddress, requestedPage, system->ptable[spid].ptable[requestedPage].frame, message.spid);
+					flog("Address %d-%d already in frame %d, giving data to P%d\n", requestedAddress, requestedPage, system->ptable[spid].ptable[requestedPage].frame, spid);
 				} else {
-					flog("%d-%d in frame %d, writing data to it\n", requestedAddress, requestedPage, system->ptable[spid].ptable[requestedPage].frame);
+					flog("Address %d-%d already in frame %d, writing data to P%d\n", requestedAddress, requestedPage, system->ptable[spid].ptable[requestedPage].frame, spid);
 				}
 			}
 		}
