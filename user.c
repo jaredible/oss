@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 
 		/* Continue getting address if we haven't referenced to our limit (1000) */
 		if (referenceCount <= 1000) {
-			if (scheme == SIMPLE) {
+			if (scheme == RANDOM) {
 				/* Execute simple scheme algorithm */
 
 				address = rand() % 32768 + 0;

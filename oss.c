@@ -57,6 +57,7 @@ void flog(char*, ...);
 void semLock(const int);
 void semUnlock(const int);
 void printSummary();
+void displayMemoryMap();
 
 static char *programName;
 static volatile bool quit = false;
@@ -69,7 +70,7 @@ static System *system = NULL;
 static Message message;
 
 /* Simulation variables */
-static int scheme = SIMPLE;
+static int scheme = RANDOM;
 static Queue *queue; /* Process queue */
 static List *reference; /* Reference string */
 static List *stack; /* LRU stack */
@@ -219,8 +220,10 @@ void handleProcesses() {
 		advanceClock(0);
 
 		if (message.terminate) {
+			displayMemoryMap();
+			
 			flog("P%d has terminated, freeing memory\n", spid);
-
+			
 			/* Free process' frames */
 			int i;
 			for (i = 0; i < MAX_PAGES; i++) {
@@ -253,15 +256,14 @@ void handleProcesses() {
 
 				pageFaultCount++;
 
-				totalAccessTime += advanceClock(10 * 1000000);
+				totalAccessTime += advanceClock(5 * 1000000);
 
 				/* Find available frame */
 				bool isMemoryOpen = false;
 				int frameCount = 0;
 				while (true) {
 					currentFrame = (currentFrame + 1) % MAX_FRAMES;
-					uint32_t frame = memory[currentFrame / 8] & (1 << (currentFrame % 8));
-					if (frame == 0) {
+					if ((memory[currentFrame / 8] & (1 << (currentFrame % 8))) == 0) {
 						isMemoryOpen = true;
 						break;
 					}
@@ -294,15 +296,11 @@ void handleProcesses() {
 
 					flog("Address %d-%d not in frame, memory is full\n", requestedAddress, requestedPage);
 					
-					//flog("Before LRU algorithm\n");
-					//flog(list_string(reference));
-					//flog(list_string(stack));
-					
 					unsigned int index = stack->head->index;
 					unsigned int page = stack->head->page;
 					unsigned int address = page << 10;
 					unsigned int frame = stack->head->frame;
-
+					
 					if (system->ptable[index].ptable[page].dirty == 1) {
 						flog("Address %d-%d was modified, writing back to disk\n", address, page);
 					}
@@ -319,10 +317,6 @@ void handleProcesses() {
 					list_add(stack, spid, requestedPage, frame);
 					list_add(reference, spid, requestedPage, frame);
 					
-					flog("After LRU algorithm\n");
-					//flog(list_string(reference));
-					//flog(list_string(stack));
-
 					if (system->ptable[spid].ptable[requestedPage].protection == 1) {
 						system->ptable[spid].ptable[requestedPage].dirty = 1;
 						flog("Dirty bit of frame %d set, adding additional time to the clock\n", currentFrame);
@@ -341,7 +335,9 @@ void handleProcesses() {
 				}
 			}
 		}
-
+		
+		displayMemoryMap();
+		
 		/* Reset message */
 		message.type = -1;
 		message.spid = -1;
@@ -620,4 +616,12 @@ void printSummary() {
 	log("Page faults per memory access: %f\n", pageFaultsPerMemoryAccess);
 	log("Average memory access speed: %f milliseconds\n", averageMemoryAccessSpeed);
 	log("Total memory access time: %f milliseconds\n", (double) totalAccessTime / (double) 1000000);
+}
+
+void displayMemoryMap() {
+	log("Reference\n");
+	log(list_string(reference));
+	log("Stack\n");
+	log(list_string(stack));
+	log("\n");
 }

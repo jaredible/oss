@@ -35,7 +35,7 @@
 #define FRAME_SIZE PAGE_SIZE
 #define MAX_FRAMES (MEMORY_SIZE / FRAME_SIZE)
 
-enum SchemeType { SIMPLE, WEIGHTED };
+enum SchemeType { RANDOM, WEIGHTED };
 
 typedef unsigned int uint;
 
@@ -51,7 +51,6 @@ typedef struct {
 	bool terminate;
 	unsigned int address;
 	unsigned int page;
-	char text[BUFFER_LENGTH];
 } Message;
 
 typedef struct {

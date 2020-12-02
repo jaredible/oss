@@ -10,6 +10,8 @@ full memory. For the request schemes (random or weighted),
 the overall goal is to generate the fewest number of overall
 page faults. For me, during testing, the random request scheme
 had less page faults, which resulted in greater performance.
+Although, the most realistic model, to me, seems to be while
+using the weighted request scheme.
 
 ##### BUILD
 make
@@ -24,7 +26,7 @@ make
 - Doesn't abort properly sometimes
 
 #### ADJUSTMENTS
-- Memory layout
+- Memory map
 - get_page routine
 - I/O handling
 
