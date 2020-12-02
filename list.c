@@ -12,6 +12,8 @@
 
 #include "list.h"
 
+#define BUFFER_LENGTH 4096
+
 List *list_create() {
     List *list = (List*) malloc(sizeof(List));
     list->head = NULL;
@@ -88,4 +90,29 @@ bool list_contains(List *list, int key) {
     }
 
     return true;
+}
+
+char *strdup(const char *src) {
+	size_t len = strlen(src) + 1;
+	char *dst = malloc(len);
+	if (dst == NULL) return NULL;
+	memcpy(dst, src, len);
+	return dst;
+}
+
+char *list_string(const List *list) {
+	char buf[BUFFER_LENGTH];
+	ListNode *next = list->head;
+	
+	if (next == NULL) return strdup(buf);
+	
+	sprintf(buf, "List: ");
+	while (next != NULL) {
+		sprintf(buf, "%s (%d | %d | %d)\n", buf, next->index, next->page, next->frame);
+		next = (next->next != NULL) ? next->next : NULL;
+		if (next != NULL) sprintf(buf, "%s, ", buf);
+	}
+	sprintf(buf, "%s\n", buf);
+	
+	return strdup(buf);
 }

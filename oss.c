@@ -201,6 +201,8 @@ void simulate() {
 void handleProcesses() {
 	QueueNode *next = queue->front;
 	Queue *temp = queue_create();
+	
+	flog(list_string(reference));
 
 	/* While we have user processes to simulate */
 	while (next != NULL) {
@@ -291,7 +293,10 @@ void handleProcesses() {
 					/* Handle when memory is full */
 
 					flog("Address %d-%d not in frame, memory is full\n", requestedAddress, requestedPage);
-
+					
+					//flog(list_string(reference));
+					//flog(list_string(stack));
+					
 					unsigned int index = stack->head->index;
 					unsigned int page = stack->head->page;
 					unsigned int address = page << 10;

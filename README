@@ -1,33 +1,24 @@
-S4760 Project 6: Memory Management
+CS4760 Project 6: Memory Management
 
-**OSS (operating system simulator)** is a program that simulates an operating system.
-
+##### DESCRIPTION
 Logging of address and page are represented in the following format: #####-##
 
-To build this program:
-```
+##### BUILD
 make
-```
 
-To run this program:
-```
-./oss
-```
+##### EXECUTION
+./oss -h
+./oss [-m x]
 
-To run this program using a particular request scheme (1 = SIMPLE, 2 = WEIGHTED):
-```
-./oss -m scheme
-```
-
-To cleanup:
-```
-make clean
-```
-
-#### Issues
+##### ISSUES
 - Program may pause mid-execution
 
-#### Changelog
+#### ADJUSTMENTS
+- Memory layout
+- get_page routine
+- I/O handling
+
+##### CHANGELOG
 
 commit 7e959069051ad3302a20d4cc4019f1888861f12d
 Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
