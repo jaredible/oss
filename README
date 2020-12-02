@@ -22,7 +22,6 @@ make
 
 ##### ISSUES
 - Program may pause mid-execution
-- Outputted list
 - Doesn't abort properly sometimes
 
 #### ADJUSTMENTS
