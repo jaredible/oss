@@ -61,6 +61,7 @@ void displayMemoryMap();
 
 static char *programName;
 static volatile bool quit = false;
+static bool debug = false;
 
 /* IPC variables */
 static int shmid = -1;
@@ -93,7 +94,7 @@ int main(int argc, char *argv[]) {
 
 	/* Get program arguments */
 	while (true) {
-		int c = getopt(argc, argv, "hm:");
+		int c = getopt(argc, argv, "hm:d");
 		if (c == -1) break;
 		switch (c) {
 			case 'h':
@@ -104,6 +105,9 @@ int main(int argc, char *argv[]) {
 					error("invalid request scheme '%s'", optarg);
 					ok = false;
 				}
+				break;
+			case 'd':
+				debug = true;
 				break;
 			default:
 				ok = false;
@@ -459,8 +463,9 @@ void init(int argc, char **argv)
 void usage(int status) {
 	if (status != EXIT_SUCCESS) fprintf(stderr, "Try '%s -h' for more information\n", programName);
 	else {
-		printf("Usage: %s [-m]\n", programName);
-		printf("   m : Request scheme (1 = RANDOM, 2 = WEIGHTED) (default 1)\n");
+		printf("Usage: %s [-m x] [-d]\n", programName);
+		printf("     -m x     : Request scheme (1 = RANDOM, 2 = WEIGHTED) (default 1)\n");
+		printf("     -d       : Debug mode (default off)\n");
 	}
 	exit(status);
 }
@@ -619,6 +624,7 @@ void printSummary() {
 }
 
 void displayMemoryMap() {
+	if (!debug) return;
 	log("\n");
 	/* Log the reference list */
 	log(list_string(reference));
