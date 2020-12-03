@@ -31,6 +31,24 @@ make
 
 ##### CHANGELOG
 
+commit 60e73588bf7f999cb8c10eaad06f79d05092252e
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 22:15:23 2020 -0600
+
+    Updated headings
+
+commit 707c36d17065cc020a73c22fa404961d4645bd1c
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 21:46:37 2020 -0600
+
+    Added debug mode
+
+commit f580e264e2fc2bf7633885c4c5c80bd843e41cb9
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Dec 2 20:39:37 2020 -0600
+
+    Updated usage
+
 commit 83b354ce0ccd69778acfa03a4cd7f5aa7626143e
 Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
 Date:   Wed Dec 2 15:36:21 2020 -0600
