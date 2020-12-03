@@ -1,5 +1,5 @@
 /*
- * list.h November 24, 2020
+ * list.h December 2, 2020
  * Jared Diehl (jmddnb@umsystem.edu)
  */
 

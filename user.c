@@ -1,5 +1,5 @@
 /*
- * user.c November 24, 2020
+ * user.c December 2, 2020
  * Jared Diehl (jmddnb@umsystem.edu)
  */
 

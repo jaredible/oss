@@ -1,5 +1,5 @@
 /*
- * oss.c November 24, 2020
+ * oss.c December 2, 2020
  * Jared Diehl (jmddnb@umsystem.edu)
  */
 
