@@ -235,7 +235,7 @@ void handleProcesses() {
 			}
 		} else {
 			int currentFrame;
-			totalAccessTime += advanceClock(0);
+			totalAccessTime += advanceClock(1000000);
 			queue_push(temp, spid);
 			
 			// Frame allocation procedure
@@ -256,7 +256,7 @@ void handleProcesses() {
 
 				pageFaultCount++;
 
-				totalAccessTime += advanceClock(5 * 1000000);
+				totalAccessTime += advanceClock(10 * 1000000);
 
 				/* Find available frame */
 				bool isMemoryOpen = false;
@@ -619,9 +619,10 @@ void printSummary() {
 }
 
 void displayMemoryMap() {
-	log("Reference\n");
+	log("\n");
+	/* Log the reference list */
 	log(list_string(reference));
-	log("Stack\n");
+	/* Log the stack list */
 	log(list_string(stack));
 	log("\n");
 }
