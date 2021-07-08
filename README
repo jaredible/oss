@@ -1,0 +1,147 @@
+# CS4760 Project 4: Process Scheduling
+
+##### DESCRIPTION
+This program simulates scheduling processes (real-time or normal) in an
+operating system. Process-scheduling output and statistics will be displayed.
+
+*----- = created
+-*---- = scheduled
+--*--- = expired
+---*-- = blocked
+----*- = unblocked
+-----* = terminated
+
+##### BUILD
+make
+
+##### EXECUTION
+./oss [-h]
+
+##### ADJUSTMENTS
+- No throughput calculation
+- No CPU utilization calculation
+- Log file lines are always below 10000
+
+##### ISSUES
+None known.
+
+##### CHANGELOG
+commit a864c8a7018ed9ee4249403f4b5f142585aaff94
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 8 19:47:58 2020 -0600
+
+    Updated README
+
+commit 3e33534101a968585815693769fce3218a784853
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 8 19:45:22 2020 -0600
+
+    Fixed instant-finish bug
+
+commit fc570dcd2988ff031312701cee72ee58f56db4e0
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 8 19:40:00 2020 -0600
+
+    Housekeeping
+
+commit 9514df88b59807fcad65c9d5eb98f6412c162912
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 8 19:30:07 2020 -0600
+
+    Housekeeping
+
+commit 93f983ee88be5f2531405c57d0526cb9059655b3
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sun Nov 8 09:04:40 2020 -0600
+
+    Added summary
+
+commit c924dd2d9d0c8eb0890a4b269ae748ba97e02a1a
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sat Nov 7 12:27:06 2020 -0600
+
+    Updated signal handling
+
+commit 6f78406f5050e1b93fd3466e5459aa4c1e7d15b5
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Nov 4 19:44:15 2020 -0600
+
+    Implemented total times
+
+commit db9b771aeaf066da01afc72cd6c33c89f541da4a
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Wed Nov 4 14:04:41 2020 -0600
+
+    Implemented waiting time
+
+commit 674e125414f4d8cd78507b9467792c78ef75f7cb
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Tue Nov 3 14:29:47 2020 -0600
+
+    Implemented blocking
+
+commit fd9de13f56a8ca2102e3967333206ae2d21bb5de
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Mon Nov 2 15:49:35 2020 -0600
+
+    Implemeted MLFQ
+
+commit 1cbaf370426bcf7c488d571aadcb00d1b9098578
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sat Oct 31 03:43:02 2020 -0500
+
+    Implemented RR scheduling
+
+commit 45d4704ac503f03029c77b3e94183808b644b86f
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sat Oct 31 03:42:15 2020 -0500
+
+    Updated
+
+commit eeb6d576b497991f62c37bc1a50636450adab2ca
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sat Oct 31 03:41:02 2020 -0500
+
+    Added helper module
+
+commit 059492d6da7ff3a8bf11c7b9f89051b7d1eafa30
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Oct 30 19:26:22 2020 -0500
+
+    Updated queue interface
+
+commit fc94b25fe7dbea2c4f9d87f57b56a7a95037249d
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Oct 30 19:24:08 2020 -0500
+
+    Created queue module
+
+commit e0b73458de3a5ae6b894139c17d8126287652500
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Oct 30 19:23:38 2020 -0500
+
+    Implemented initialization
+
+commit 1ca2b07247bc7a789f24bcefe3f56891f7cf5bde
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Oct 30 19:20:02 2020 -0500
+
+    Implemented makefile
+
+commit bc0e354a63df468c49a1e653b09c4900a00ebe26
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Oct 30 17:50:36 2020 -0500
+
+    Implemented shared utilities
+
+commit 52f320f97a021b3415b0eb4c2bf64ad6bd8c501e
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Fri Oct 30 16:29:13 2020 -0500
+
+    Created shared module
+
+commit 09eb4bbbef7b8d210aae9d574eb4e4de10cebe01
+Author: Jared Diehl <diehl@hoare7.cs.umsl.edu>
+Date:   Sat Oct 17 23:34:35 2020 -0500
+
+    Initial commit
